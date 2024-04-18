@@ -1,0 +1,61 @@
+import sys
+import primaryWindow, inputWindow
+import src
+from PySide6.QtWidgets import QApplication, QMainWindow,QTableWidgetItem,QInputDialog
+from PySide6.QtCore import Slot
+
+class primayWindowClass(QMainWindow,primaryWindow.Ui_primaryWindow):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.resize(950,1000)
+        self.generateButton.clicked.connect(self.generateData)
+
+    def add_row(self, row_data):
+        row_position = self.mainTable.rowCount()
+        self.mainTable.insertRow(row_position)
+        for column, data in enumerate(row_data):
+            item = QTableWidgetItem(str(data))
+            self.mainTable.setItem(row_position, column, item)
+
+    def open_input_dialog(self):
+        while(True):
+            frameCount, ok = QInputDialog.getText(self, 'Input Dialog', 'How many frames would you like to generate (10-100)?: ')
+            if ok:
+                try:
+                    if int(frameCount) > 10 or int(frameCount) < 100:
+                        return int(frameCount)
+                except ValueError:
+                    print("\nInvalid input")
+                    continue
+
+    @Slot()
+    def generateData(self):
+        print('\n\nSTARTED SIMULATION\n\n')
+        frameCount = self.open_input_dialog()
+        data = src.generateFrames(frameCount)
+        
+        data_row = []
+        for frame in data:
+            data_row.append(frame.id)
+            for i in range(2, len(frame.data), 2):
+                data_row.append("0x" + frame.data[i:i+2])
+            data_row_copy = data_row.copy()
+            self.add_row(data_row_copy)
+            data_row.clear()
+        self.generateButton.hide() #Grey out the start button
+        
+class inputWindowClass(QMainWindow,inputWindow.Ui_inputWindow):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
+def main():
+    app = QApplication(sys.argv)
+    gui = primayWindowClass()
+    
+    gui.show()
+    app.exec_()
+
+if __name__ == '__main__':
+    main()

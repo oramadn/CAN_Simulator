@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>primaryWindow</class>
+ <widget class="QMainWindow" name="primaryWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,12 +11,19 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Simulator</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="generateButton">
+        <property name="text">
+         <string>Generate  frames</string>
+        </property>
+       </widget>
+      </item>
       <item>
        <widget class="QPushButton" name="startButton">
         <property name="text">

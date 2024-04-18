@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'test.ui'
+## Form generated from reading UI file 'primaryWindow.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.7.0
 ##
@@ -19,17 +19,22 @@ from PySide6.QtWidgets import (QApplication, QHBoxLayout, QHeaderView, QMainWind
     QPushButton, QSizePolicy, QStatusBar, QTableWidget,
     QTableWidgetItem, QVBoxLayout, QWidget)
 
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        if not MainWindow.objectName():
-            MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(800, 600)
-        self.centralwidget = QWidget(MainWindow)
+class Ui_primaryWindow(object):
+    def setupUi(self, primaryWindow):
+        if not primaryWindow.objectName():
+            primaryWindow.setObjectName(u"primaryWindow")
+        primaryWindow.resize(800, 600)
+        self.centralwidget = QWidget(primaryWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout = QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.generateButton = QPushButton(self.centralwidget)
+        self.generateButton.setObjectName(u"generateButton")
+
+        self.horizontalLayout.addWidget(self.generateButton)
+
         self.startButton = QPushButton(self.centralwidget)
         self.startButton.setObjectName(u"startButton")
 
@@ -83,37 +88,38 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.statusbar = QStatusBar(MainWindow)
+        primaryWindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QStatusBar(primaryWindow)
         self.statusbar.setObjectName(u"statusbar")
-        MainWindow.setStatusBar(self.statusbar)
+        primaryWindow.setStatusBar(self.statusbar)
 
-        self.retranslateUi(MainWindow)
+        self.retranslateUi(primaryWindow)
 
-        QMetaObject.connectSlotsByName(MainWindow)
+        QMetaObject.connectSlotsByName(primaryWindow)
     # setupUi
 
-    def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.startButton.setText(QCoreApplication.translate("MainWindow", u"Start simulation", None))
-        self.stopButton.setText(QCoreApplication.translate("MainWindow", u"Stop simulation", None))
+    def retranslateUi(self, primaryWindow):
+        primaryWindow.setWindowTitle(QCoreApplication.translate("primaryWindow", u"Simulator", None))
+        self.generateButton.setText(QCoreApplication.translate("primaryWindow", u"Generate  frames", None))
+        self.startButton.setText(QCoreApplication.translate("primaryWindow", u"Start simulation", None))
+        self.stopButton.setText(QCoreApplication.translate("primaryWindow", u"Stop simulation", None))
         ___qtablewidgetitem = self.mainTable.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"ID", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("primaryWindow", u"ID", None));
         ___qtablewidgetitem1 = self.mainTable.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"0", None));
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("primaryWindow", u"0", None));
         ___qtablewidgetitem2 = self.mainTable.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"1", None));
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("primaryWindow", u"1", None));
         ___qtablewidgetitem3 = self.mainTable.horizontalHeaderItem(3)
-        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"2", None));
+        ___qtablewidgetitem3.setText(QCoreApplication.translate("primaryWindow", u"2", None));
         ___qtablewidgetitem4 = self.mainTable.horizontalHeaderItem(4)
-        ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"3", None));
+        ___qtablewidgetitem4.setText(QCoreApplication.translate("primaryWindow", u"3", None));
         ___qtablewidgetitem5 = self.mainTable.horizontalHeaderItem(5)
-        ___qtablewidgetitem5.setText(QCoreApplication.translate("MainWindow", u"4", None));
+        ___qtablewidgetitem5.setText(QCoreApplication.translate("primaryWindow", u"4", None));
         ___qtablewidgetitem6 = self.mainTable.horizontalHeaderItem(6)
-        ___qtablewidgetitem6.setText(QCoreApplication.translate("MainWindow", u"5", None));
+        ___qtablewidgetitem6.setText(QCoreApplication.translate("primaryWindow", u"5", None));
         ___qtablewidgetitem7 = self.mainTable.horizontalHeaderItem(7)
-        ___qtablewidgetitem7.setText(QCoreApplication.translate("MainWindow", u"6", None));
+        ___qtablewidgetitem7.setText(QCoreApplication.translate("primaryWindow", u"6", None));
         ___qtablewidgetitem8 = self.mainTable.horizontalHeaderItem(8)
-        ___qtablewidgetitem8.setText(QCoreApplication.translate("MainWindow", u"7", None));
+        ___qtablewidgetitem8.setText(QCoreApplication.translate("primaryWindow", u"7", None));
     # retranslateUi
 
