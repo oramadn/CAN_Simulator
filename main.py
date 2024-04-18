@@ -33,6 +33,7 @@ class CANmsg:
         self.data = data
 
 def generateFrames(frameCount):
+    #Generate random IDs and DATA
     frames = []
     for i in range(frameCount):
         random_id = '0x' + hex(random.randint(0, 2**11 - 1))[2:].rjust(5, '0')
@@ -42,7 +43,8 @@ def generateFrames(frameCount):
         
     frames = sorted(frames, key=lambda x: x.id)
 
-    data = [("ID","0","1","2","3","4","5","6","7")]
+    #Prepare data for making a table
+    data = []
     data_row = []
     for frame in frames:
         data_row.append(frame.id)
@@ -52,15 +54,19 @@ def generateFrames(frameCount):
         data.append(data_row_copy)
         data_row.clear()
 
+    return data
+
+def generateTable(data):
+    data.insert(0,("ID","0","1","2","3","4","5","6","7"))
     # Determine the maximum width for each column
     column_widths = [max(len(str(item)) for item in column) for column in zip(*data)]
 
-    # Print the table with centered column titles
+    # Centered column titles
     for i, column_title in enumerate(data[0]):
         print(f"{column_title.center(column_widths[i])}", end="  ")
     print()
 
-    # Print the table body
+    # Print the table
     for row in data[1:]:
         for i, item in enumerate(row):
             print(f"{item:{'>' if isinstance(item, int) else '<'}{column_widths[i]}}", end="  ")
@@ -78,7 +84,9 @@ def main():
             continue
         break
 
-    generateFrames(frameCount)
+    data = generateFrames(frameCount)
+    #generateTable(data)
+    
 
 if __name__ == '__main__':
     main()
