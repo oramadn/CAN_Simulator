@@ -1,29 +1,3 @@
-# import sys
-# import test_ui
-# from PySide6.QtWidgets import QApplication, QPushButton, QMainWindow
-# from PySide6.QtCore import Slot
-
-
-# class GUI(QMainWindow,test_ui.Ui_MainWindow):
-#     def __init__(self):
-#         super().__init__()
-#         self.setupUi(self)
-#         self.pushButton.clicked.connect(self.sayHello)
-
-#     @Slot()
-#     def sayHello(self):
-#         print('Hello!1!!!')
-
-# def main():
-#     app = QApplication(sys.argv)
-#     gui = GUI()
-
-#     gui.show()
-#     app.exec_()
-
-# if __name__ == '__main__':
-#     main()
-
 import time
 import random
 
@@ -34,15 +8,17 @@ class CANmsg:
 
 def generateFrames(frameCount):
     #Generate random IDs and DATA
-    frames = []
+    data = []
     for i in range(frameCount):
         random_id = '0x' + hex(random.randint(0, 2**11 - 1))[2:].rjust(5, '0')
         random_data = '0x' + hex(random.randint(0, 2**64 - 1))[2:].rjust(16, '0')
 
-        frames.append(CANmsg(random_id,random_data))
+        data.append(CANmsg(random_id,random_data))
         
-    frames = sorted(frames, key=lambda x: x.id)
+    data = sorted(data, key=lambda x: x.id)
+    return data
 
+def generateTable(frames):
     #Prepare data for making a table
     data = []
     data_row = []
@@ -54,10 +30,6 @@ def generateFrames(frameCount):
         data.append(data_row_copy)
         data_row.clear()
 
-    return data
-
-def generateTable(data):
-    data.insert(0,("ID","0","1","2","3","4","5","6","7"))
     # Determine the maximum width for each column
     column_widths = [max(len(str(item)) for item in column) for column in zip(*data)]
 
@@ -72,7 +44,7 @@ def generateTable(data):
             print(f"{item:{'>' if isinstance(item, int) else '<'}{column_widths[i]}}", end="  ")
         print()
 
-def main():
+def promptUser():
     while(True):
         try:
             frameCount = int(input("How many CAN frames would you like to simulate (10-100): "))
@@ -84,9 +56,10 @@ def main():
             continue
         break
 
-    data = generateFrames(frameCount)
-    #generateTable(data)
+    return frameCount
+    # data = generateFrames(frameCount) #list of CANmsg objects
+    # generateTable(data)
     
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

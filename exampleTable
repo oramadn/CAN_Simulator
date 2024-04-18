@@ -1,0 +1,39 @@
+import sys
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Table Example")
+        self.setGeometry(100, 100, 600, 400)
+
+        # Create a table widget
+        self.tableWidget = QTableWidget()
+        self.tableWidget.setRowCount(3)  # Set number of rows
+        self.tableWidget.setColumnCount(3)  # Set number of columns
+
+        # Fill the table with some sample data
+        for row in range(3):
+            for col in range(3):
+                item = QTableWidgetItem(f"Row {row}, Col {col}")
+                self.tableWidget.setItem(row, col, item)
+
+        # Set table headers
+        self.tableWidget.setHorizontalHeaderLabels(["Column 1", "Column 2", "Column 3"])
+        self.tableWidget.setVerticalHeaderLabels(["Row 1", "Row 2", "Row 3"])
+
+        # Set table to stretch to fit the window
+        layout = QVBoxLayout()
+        layout.addWidget(self.tableWidget)
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
