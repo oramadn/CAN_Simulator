@@ -1,10 +1,12 @@
 import sys, random
 import primaryWindow, src
 from PySide6.QtWidgets import QApplication, QMainWindow,QTableWidgetItem,QInputDialog
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Slot, QTimer
 
 class primayWindowClass(QMainWindow,primaryWindow.Ui_primaryWindow):
     data = 0 #Class attributes
+    variableFrames = []
+    staticFrames = []
 
     def __init__(self):
         super().__init__()
@@ -12,13 +14,17 @@ class primayWindowClass(QMainWindow,primaryWindow.Ui_primaryWindow):
         self.resize(950,1000)
         self.generateButton.clicked.connect(self.generateData)
         self.startButton.clicked.connect(self.startSimulation)
-
+        
     def addRow(self, row_data):
         row_position = self.mainTable.rowCount()
         self.mainTable.insertRow(row_position)
         for column, data in enumerate(row_data):
             item = QTableWidgetItem(str(data))
             self.mainTable.setItem(row_position, column, item)
+
+    def clearTable(self):
+        self.mainTable.clearContents()
+        self.mainTable.setRowCount(0)
 
     def openInputDialog(self):
         while(True):
@@ -35,7 +41,7 @@ class primayWindowClass(QMainWindow,primaryWindow.Ui_primaryWindow):
 
     @Slot()
     def generateData(self):
-        print('\n\nPROGRAM STARTED\n\n')
+        print('\nGenerate start\n')
         frameCount = self.openInputDialog()
         self.data = src.generateFrames(frameCount)
         
@@ -50,17 +56,30 @@ class primayWindowClass(QMainWindow,primaryWindow.Ui_primaryWindow):
                 data_row.clear()
             self.generateButton.hide() #Grey out the start button
             self.startButton.setEnabled(True) #Enable the start simulation button
+            print('\nGenerate finish\n')
 
     @Slot()
     def startSimulation(self):
-        print("started sim")
+        print("\nSimulation start\n")
+        self.variableFrames, self.staticFrames = src.splitFrames(self.data)
         
-def main():
-    app = QApplication(sys.argv)
-    gui = primayWindowClass()
+        #Running
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.runSimulation)
+        self.timer.start(1000)  # Call every 1000 milliseconds (1 second)
+
+        print("\nSimulation finish\n")
+
+    def runSimulation(self):
+        variableBytesIdx = src.generateVariableBytesIdx(self.variableFrames)
+        print(variableBytesIdx)
+        
+#def main():
     
-    gui.show()
-    app.exec_()
 
 if __name__ == '__main__':
-    main()
+    app = QApplication(sys.argv)
+    window = primayWindowClass()
+    
+    window.show()
+    sys.exit(app.exec())

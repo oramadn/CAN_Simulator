@@ -59,7 +59,24 @@ def promptUser():
     return frameCount
     # data = generateFrames(frameCount) #list of CANmsg objects
     # generateTable(data)
-    
+
+import random
+
+def splitFrames(classList, ratio=0.6):
+ 
+    random.shuffle(classList)
+
+    splitIndex = int(len(classList) * ratio)
+
+    variableFrames = classList[:splitIndex]
+    staticFrames = classList[splitIndex:]
+
+    return variableFrames, staticFrames
+
+def generateVariableBytesIdx(frames):
+    variableBytes = len(frames)*8
+    variableBytesIdx = random.sample(range(variableBytes), variableBytes//2)
+    return variableBytesIdx
 
 # if __name__ == '__main__':
 #     main()
