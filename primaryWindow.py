@@ -37,6 +37,7 @@ class Ui_primaryWindow(object):
 
         self.startButton = QPushButton(self.centralwidget)
         self.startButton.setObjectName(u"startButton")
+        self.startButton.setEnabled(False)
 
         self.horizontalLayout.addWidget(self.startButton)
 
@@ -44,6 +45,7 @@ class Ui_primaryWindow(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.stopButton = QPushButton(self.centralwidget)
         self.stopButton.setObjectName(u"stopButton")
+        self.stopButton.setEnabled(False)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)

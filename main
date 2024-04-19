@@ -1,55 +1,60 @@
-import sys
-import primaryWindow, inputWindow
-import src
+import sys, random
+import primaryWindow, src
 from PySide6.QtWidgets import QApplication, QMainWindow,QTableWidgetItem,QInputDialog
 from PySide6.QtCore import Slot
 
 class primayWindowClass(QMainWindow,primaryWindow.Ui_primaryWindow):
+    data = 0 #Class attributes
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.resize(950,1000)
         self.generateButton.clicked.connect(self.generateData)
+        self.startButton.clicked.connect(self.startSimulation)
 
-    def add_row(self, row_data):
+    def addRow(self, row_data):
         row_position = self.mainTable.rowCount()
         self.mainTable.insertRow(row_position)
         for column, data in enumerate(row_data):
             item = QTableWidgetItem(str(data))
             self.mainTable.setItem(row_position, column, item)
 
-    def open_input_dialog(self):
+    def openInputDialog(self):
         while(True):
             frameCount, ok = QInputDialog.getText(self, 'Input Dialog', 'How many frames would you like to generate (10-100)?: ')
             if ok:
                 try:
-                    if int(frameCount) > 10 or int(frameCount) < 100:
+                    if int(frameCount) >= 10 and int(frameCount) <= 100:
                         return int(frameCount)
                 except ValueError:
                     print("\nInvalid input")
                     continue
+            else:
+                return 0
 
     @Slot()
     def generateData(self):
-        print('\n\nSTARTED SIMULATION\n\n')
-        frameCount = self.open_input_dialog()
-        data = src.generateFrames(frameCount)
+        print('\n\nPROGRAM STARTED\n\n')
+        frameCount = self.openInputDialog()
+        self.data = src.generateFrames(frameCount)
         
-        data_row = []
-        for frame in data:
-            data_row.append(frame.id)
-            for i in range(2, len(frame.data), 2):
-                data_row.append("0x" + frame.data[i:i+2])
-            data_row_copy = data_row.copy()
-            self.add_row(data_row_copy)
-            data_row.clear()
-        self.generateButton.hide() #Grey out the start button
-        
-class inputWindowClass(QMainWindow,inputWindow.Ui_inputWindow):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
+        if frameCount != 0: #If the user hits cancel when prompted to enter number of needed frames
+            data_row = []
+            for frame in self.data: #This loop formats the data such that it can fit into 9 columns (ID , 0-7) where each column has 1 byte
+                data_row.append(frame.id)
+                for i in range(2, len(frame.data), 2):
+                    data_row.append("0x" + frame.data[i:i+2])
+                data_row_copy = data_row.copy()
+                self.addRow(data_row_copy)
+                data_row.clear()
+            self.generateButton.hide() #Grey out the start button
+            self.startButton.setEnabled(True) #Enable the start simulation button
 
+    @Slot()
+    def startSimulation(self):
+        print("started sim")
+        
 def main():
     app = QApplication(sys.argv)
     gui = primayWindowClass()
