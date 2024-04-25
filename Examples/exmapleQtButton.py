@@ -12,5 +12,5 @@ app = QApplication(sys.argv)
 button = QPushButton("Click me")
 button.clicked.connect(say_hello)
 button.show()
-# Run the main Qt loop
+# Run the main.py Qt loop
 app.exec()

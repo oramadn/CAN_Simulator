@@ -30,14 +30,8 @@ class Ui_primaryWindow(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.generateButton = QPushButton(self.centralwidget)
-        self.generateButton.setObjectName(u"generateButton")
-
-        self.horizontalLayout.addWidget(self.generateButton)
-
         self.startButton = QPushButton(self.centralwidget)
         self.startButton.setObjectName(u"startButton")
-        self.startButton.setEnabled(False)
 
         self.horizontalLayout.addWidget(self.startButton)
 
@@ -102,7 +96,6 @@ class Ui_primaryWindow(object):
 
     def retranslateUi(self, primaryWindow):
         primaryWindow.setWindowTitle(QCoreApplication.translate("primaryWindow", u"Simulator", None))
-        self.generateButton.setText(QCoreApplication.translate("primaryWindow", u"Generate  frames", None))
         self.startButton.setText(QCoreApplication.translate("primaryWindow", u"Start simulation", None))
         self.stopButton.setText(QCoreApplication.translate("primaryWindow", u"Stop simulation", None))
         ___qtablewidgetitem = self.mainTable.horizontalHeaderItem(0)

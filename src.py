@@ -7,7 +7,7 @@ class CANmsg:
         self.data = data
 
 def generateFrames(frameCount):
-    #Generate random IDs and DATA
+    # Generate random IDs and DATA
     data = []
     for i in range(frameCount):
         random_id = '0x' + hex(random.randint(0, 2**11 - 1))[2:].rjust(5, '0')
@@ -19,7 +19,7 @@ def generateFrames(frameCount):
     return data
 
 def generateTable(frames):
-    #Prepare data for making a table
+    # Prepare data for making a table
     data = []
     data_row = []
     for frame in frames:
@@ -47,36 +47,53 @@ def generateTable(frames):
 def promptUser():
     while(True):
         try:
-            frameCount = int(input("How many CAN frames would you like to simulate (10-100): "))
+            frame_count = int(input("How many CAN frames would you like to simulate (10-100): "))
         except ValueError:
             print("\nInvalid input")
             continue   
-        if frameCount < 10 or frameCount > 100:
+        if frame_count < 10 or frame_count > 100:
             print("\nInvalid amount of CAN messages requested")
             continue
         break
 
-    return frameCount
-    # data = generateFrames(frameCount) #list of CANmsg objects
+    return frame_count
+    # data = generateFrames(frame_count) #list of CANmsg objects
     # generateTable(data)
-
-import random
 
 def splitFrames(classList, ratio=0.6):
  
     random.shuffle(classList)
 
-    splitIndex = int(len(classList) * ratio)
+    split_index = int(len(classList) * ratio)
 
-    variableFrames = classList[:splitIndex]
-    staticFrames = classList[splitIndex:]
+    variable_frames = classList[:split_index]
+    static_frames = classList[split_index:]
 
-    return variableFrames, staticFrames
+    return variable_frames, static_frames
 
 def generateVariableBytesIdx(frames):
-    variableBytes = len(frames)*8
-    variableBytesIdx = random.sample(range(variableBytes), variableBytes//2)
-    return variableBytesIdx
+    variable_bytes = len(frames)*8
+    variable_bytes_idx = random.sample(range(variable_bytes), variable_bytes//2)
+    #print(f'Initial variable_bytes_idx: {variable_bytes_idx}')
 
-# if __name__ == '__main__':
-#     main()
+    variable_bytes_idx, throttle_bytes = generateUniqueSubset(variable_bytes_idx, 4)
+    variable_bytes_idx, brake_bytes = generateUniqueSubset(variable_bytes_idx, 3)
+    variable_bytes_idx, steering_bytes = generateUniqueSubset(variable_bytes_idx, 4)
+    #print(f'throttle_bytes: {throttle_bytes}\nbrake_bytes: {brake_bytes}\nsteering_bytes: {steering_bytes}\n\nFinal variable_bytes_idx: {variable_bytes_idx}')
+
+    return variable_bytes_idx, throttle_bytes, brake_bytes, steering_bytes
+
+def generateUniqueSubset(original_list, subset_size):
+    # Select a unique subset of specified size from the original list
+    unique_subset = random.sample(original_list, subset_size)
+    
+    # Create a set from the unique subset for efficient removal
+    subset_set = set(unique_subset)
+    
+    # Remove the elements of the unique subset from the original list
+    original_list = [item for item in original_list if item not in subset_set]
+    
+    return original_list,unique_subset
+
+def simulateVariableBytes(variableBytesIdx):
+    print("WOW")
