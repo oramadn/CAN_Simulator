@@ -14,16 +14,16 @@ def process_messages(messages, indices):
 
     for msg in messages:
         # Remove '0x' from data attribute
-        msg.data = msg.data[2:]  # Assumes data always starts with '0x'
+        msg.frames = msg.frames[2:]  # Assumes data always starts with '0x'
 
         if indices:
             # Get a unique index from the shuffled list of indices
             index = indices.pop(0)
             
             # Ensure the index is within the range of the data string
-            if index < len(msg.data):
+            if index < len(msg.frames):
                 # Map the index to the corresponding character in the data string
-                index_char = msg.data[index]
+                index_char = msg.frames[index]
                 index_mapping_results.append((msg.id, index_char))
             else:
                 # Handle the case where index is out of bounds

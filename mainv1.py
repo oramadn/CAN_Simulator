@@ -6,11 +6,11 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QInpu
 from PySide6.QtCore import Slot, QTimer
 
 
-class PrimaryWindowClass(QMainWindow, primaryWindow.Ui_primaryWindow):
-    data = 0
+class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
+    frames = 0
     variable_frames = []
     static_frames = []
-    variable_bytes_idx = []
+    variable_bytes = []
     throttle_bytes = []
     brake_bytes = []
     steering_bytes = []
@@ -19,7 +19,7 @@ class PrimaryWindowClass(QMainWindow, primaryWindow.Ui_primaryWindow):
         super().__init__()
         self.setupUi(self)
         self.resize(950, 1000)
-        self.startButton.clicked.connect(self.generate_data)
+        self.startButton.clicked.connect(self.generate_table)
 
     def add_row(self, row_data):
         row_position = self.mainTable.rowCount()
@@ -46,21 +46,25 @@ class PrimaryWindowClass(QMainWindow, primaryWindow.Ui_primaryWindow):
             else:
                 return 0
 
-    # def simulateVariableBytes(self):
-    #     for frame in self.variableFrames:
+    def simulate_variable_bytes(self):
+        local_random = random.Random()
+        local_random.seed(42)
+        for bytes in self.variable_bytes:
+            pass
 
     @Slot()
-    def generate_data(self):
+    def generate_table(self):
         print('\nGenerate start\n')
         frame_count = self.open_input_dialog()
-        self.data = src.generateFrames(
+        # Generate the frames
+        self.frames = src.generate_frames(
             frame_count)  # REMOVE THE ADDED "0x" IN generateFrames AND FIX THE CODE AS SUCH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         if frame_count != 0:  # If the user hits cancel when prompted to enter number of needed frames
             data_row = []
             # Format the data such that it can fit into 9 columns (ID , 0-7) where each column has 1 byte
-            for frame in self.data:
-                data_row.append(frame.id)
+            for frame in self.frames:
+                data_row.append("0x" + frame.id)
                 for i in range(2, len(frame.data), 2):
                     data_row.append("0x" + frame.data[i:i + 2])
                 data_row_copy = data_row.copy()
@@ -75,12 +79,13 @@ class PrimaryWindowClass(QMainWindow, primaryWindow.Ui_primaryWindow):
     def start_simulation(self):
         print("Simulation start")
         # Split data in variable and static frames with a ratio of 0.6 to 0.4
-        self.variable_frames, self.static_frames = src.splitFrames(self.data)
-        print(self.variable_frames[0].data)
+        self.variable_frames, self.static_frames = src.split_frames(self.frames)
+
         # Generate indexes at random for variable bytes
-        self.variable_bytes_idx, self.throttle_bytes, self.brake_bytes, self.steering_bytes = src.generateVariableBytesIdx(
+        self.variable_bytes, self.throttle_bytes, self.brake_bytes, self.steering_bytes = src.generate_variable_bytes_idx(
             self.variable_frames)
 
+        self.simulate_variable_bytes()
         # Running
         # self.timer = QTimer(self)
         # self.timer.timeout.connect(self.simulateVariableBytes)
@@ -91,7 +96,7 @@ class PrimaryWindowClass(QMainWindow, primaryWindow.Ui_primaryWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = PrimaryWindowClass()
+    window = PrimaryWindow()
 
     window.show()
     sys.exit(app.exec())
