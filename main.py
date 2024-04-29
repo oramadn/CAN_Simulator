@@ -1,8 +1,8 @@
 import sys
-import can_message
 import random
 from variable_frame import VariableFrame
 from can_message import CANmsg
+from slider_widget import SliderWidget, MyDevice
 import primaryWindow
 from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QInputDialog
 from PySide6.QtCore import Slot, QTimer
@@ -50,7 +50,9 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     def generate_variable_frames(self):
         frames = list(range(len(self.variable_frames)))
         random.shuffle(frames)
-        self.throttle_idx, self.brake_idx, self.steering_idx, self.variable_frames_idx = frames[0], frames[1], frames[2:4], frames[4:]
+        self.throttle_idx, self.brake_idx, self.steering_idx, self.variable_frames_idx = frames[0], frames[1], frames[
+                                                                                                               2:4], frames[
+                                                                                                                     4:]
 
     def clear_table(self):
         self.mainTable.clearContents()
@@ -74,15 +76,13 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
             self.add_row(data_row_copy)
             data_row.clear()
 
-    def split_frames(self, class_list, ratio=0.6):
-        random.shuffle(class_list)
+    def split_frames(self, ratio=0.6):
+        random.shuffle(self.frames)
 
-        split_index = int(len(class_list) * ratio)
+        split_index = int(len(self.frames) * ratio)
 
-        variable_frames = class_list[:split_index]
-        static_frames = class_list[split_index:]
-
-        return variable_frames, static_frames
+        self.variable_frames = self.frames[:split_index]
+        self.static_frames = self.frames[split_index:]
 
     def generate_frames(self, frame_count):
         # Generate random IDs and DATA
@@ -93,11 +93,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
             data.append(CANmsg(random_id, random_data))
 
-        data = sorted(data, key=lambda x: x.id)
-        return data
-
-        # data = generateFrames(frame_count) #list of CANmsg objects
-        # generateTable(data)
+        self.frames = sorted(data, key=lambda x: x.id)
 
     def open_input_dialog(self):
         while True:
@@ -119,12 +115,11 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         frame_count = self.open_input_dialog()
 
         # Generate the frames
-        self.frames = self.generate_frames(
-            frame_count)
+        self.generate_frames(frame_count)
 
         if frame_count != 0:  # If the user hits cancel when prompted to enter number of needed frames
             # Split data in variable and static frames with a ratio of 0.6 to 0.4
-            self.variable_frames, self.static_frames = self.split_frames(self.frames)
+            self.split_frames()
             self.variable_frames_copy = self.variable_frames.copy()
 
             self.generate_table(self.frames)
@@ -143,13 +138,18 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
             # Start the simulation
             self.variable_frames_timer.start(1000)  # Call every 1000 milliseconds (1 second)
+            slider_window.show()
 
             print("Program ended")
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = PrimaryWindow()
 
+    window = PrimaryWindow()
     window.show()
+
+    device = MyDevice()
+    slider_window = SliderWidget(device)
+
     sys.exit(app.exec())
