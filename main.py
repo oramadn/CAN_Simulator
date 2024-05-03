@@ -2,7 +2,7 @@ import sys
 import random
 from variable_frame import VariableFrame
 from can_message import CANmsg
-from slider_widget import SliderWidget, MyDevice
+from simulation_control import ThrottleBrakeControl
 import primaryWindow
 from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QInputDialog
 from PySide6.QtCore import Slot, QTimer
@@ -14,8 +14,12 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     variable_frames_copy = 0
     chosen_variable_frames = []
     static_frames = []
-    throttle_idx = 0
-    brake_idx = 0
+    throttle_frame_idx = 0
+    throttle_byte = '00'
+    throttle_byte_idx = None
+    brake_frame_idx = None
+    brake_byte = '00'
+    brake_byte_idx = None
     steering_idx = []
     variable_frames_idx = []
     generated_hex_numbers = []
@@ -28,8 +32,31 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.variable_frames_timer = QTimer(self)
         self.variable_frames_timer.timeout.connect(self.simulate_variable_frames)
 
+        # Throttle
+        self.throttleBrakeWindow = ThrottleBrakeControl()
+
+    def set_throttle_byte(self):
+        value = self.throttleBrakeWindow.throttle_slider.value()
+        self.throttle_byte = format(value, '02x')
+
+    def set_brake_byte(self):
+        value = self.throttleBrakeWindow.brake_slider.value()
+        self.brake_byte = format(value, '02x')
+
+    def update_variable_bytes(self):
+        self.set_throttle_byte()
+        frame = self.variable_frames_copy[self.throttle_frame_idx]
+        data = frame.data
+        frame.data = data[:self.throttle_byte_idx] + self.throttle_byte + data[self.throttle_byte_idx + 2:]
+
+        # self.set_brake_byte()
+        frame = self.variable_frames_copy[self.brake_frame_idx]
+        data = frame.data
+        frame.data = data[:self.brake_byte_idx] + self.brake_byte + data[self.brake_byte_idx + 2:]
+
     def simulate_variable_frames(self):
         for frame in self.chosen_variable_frames:
+            self.update_variable_bytes()
             self.variable_frames_copy[frame.idx].data = random.choice(frame.random_hex_numbers)
             self.clear_table()
             self.generate_table(self.variable_frames_copy + self.static_frames)
@@ -47,12 +74,18 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
                 # Append the formatted hex string to the list
                 frame.random_hex_numbers.append(random_hex)
 
+    def generate_variable_byte_idx(self):
+        even_indices = [i for i in range(0, 16, 2)]
+        selected_index = random.choice(even_indices)
+        return selected_index
+
     def generate_variable_frames(self):
         frames = list(range(len(self.variable_frames)))
         random.shuffle(frames)
-        self.throttle_idx, self.brake_idx, self.steering_idx, self.variable_frames_idx = frames[0], frames[1], frames[
-                                                                                                               2:4], frames[
-                                                                                                                     4:]
+        self.throttle_frame_idx, self.brake_frame_idx, self.steering_idx, self.variable_frames_idx = frames[0], frames[
+            1], frames[
+                2:4], frames[
+                      4:]
 
     def clear_table(self):
         self.mainTable.clearContents()
@@ -136,10 +169,12 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
             # Generate random frames for the variable frames
             self.generate_fixed_hex(5)
 
-            # Start the simulation
-            self.variable_frames_timer.start(1000)  # Call every 1000 milliseconds (1 second)
-            slider_window.show()
+            self.throttle_byte_idx = self.generate_variable_byte_idx()
+            self.brake_byte_idx = self.generate_variable_byte_idx()
 
+            # Start the simulation
+            self.variable_frames_timer.start(50)  # Call every 1000 milliseconds (1 second)
+            self.throttleBrakeWindow.show()
             print("Program ended")
 
 
@@ -148,8 +183,5 @@ if __name__ == '__main__':
 
     window = PrimaryWindow()
     window.show()
-
-    device = MyDevice()
-    slider_window = SliderWidget(device)
 
     sys.exit(app.exec())
