@@ -1,15 +1,8 @@
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QLabel
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
-from PySide6.QtCore import Qt, QPoint, QSize
+from PySide6.QtCore import Qt, QPoint
 import math
 
-# class MyDevice:
-#     def __init__(self):
-#         self.value = 0x00
-#
-#     def set_value(self, val):
-#         self.value = val
-#         print(f"Device value set to {self.value:02X}")
 
 class GaugeWidget(QWidget):
     def __init__(self):
