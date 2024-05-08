@@ -251,8 +251,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.chosen_variable_frames = [
             VariableFrame(self.variable_frames[i].id, self.variable_frames[i].data, i)
             for i in self.variable_frames_idx
-        ]
-        #test
+        ]#wow
 
         # Generate and configure fixed hex values for variable frames
         self.generate_fixed_hex(5)
