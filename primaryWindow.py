@@ -17,13 +17,13 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QHeaderView, QMainWindow,
     QPushButton, QSizePolicy, QStatusBar, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget, QSlider, QLabel)
+    QTableWidgetItem, QVBoxLayout, QWidget)
 
 class Ui_primaryWindow(object):
     def setupUi(self, primaryWindow):
         if not primaryWindow.objectName():
             primaryWindow.setObjectName(u"primaryWindow")
-        primaryWindow.resize(800, 600)
+        primaryWindow.resize(920, 582)
         self.centralwidget = QWidget(primaryWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout = QVBoxLayout(self.centralwidget)
@@ -53,6 +53,40 @@ class Ui_primaryWindow(object):
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
+
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.captureThrottle = QPushButton(self.centralwidget)
+        self.captureThrottle.setObjectName(u"captureThrottle")
+        self.captureThrottle.setEnabled(False)
+
+        self.horizontalLayout_4.addWidget(self.captureThrottle)
+
+        self.captureBrake = QPushButton(self.centralwidget)
+        self.captureBrake.setObjectName(u"captureBrake")
+        self.captureBrake.setEnabled(False)
+
+        self.horizontalLayout_4.addWidget(self.captureBrake)
+
+        self.captureSteerRight = QPushButton(self.centralwidget)
+        self.captureSteerRight.setObjectName(u"captureSteerRight")
+        self.captureSteerRight.setEnabled(False)
+
+        self.horizontalLayout_4.addWidget(self.captureSteerRight)
+
+        self.captureSteerLeft = QPushButton(self.centralwidget)
+        self.captureSteerLeft.setObjectName(u"captureSteerLeft")
+        self.captureSteerLeft.setEnabled(False)
+
+        self.horizontalLayout_4.addWidget(self.captureSteerLeft)
+
+        self.startPipeline = QPushButton(self.centralwidget)
+        self.startPipeline.setObjectName(u"startPipeline")
+
+        self.horizontalLayout_4.addWidget(self.startPipeline)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_4)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -98,6 +132,11 @@ class Ui_primaryWindow(object):
         primaryWindow.setWindowTitle(QCoreApplication.translate("primaryWindow", u"Simulator", None))
         self.startButton.setText(QCoreApplication.translate("primaryWindow", u"Start simulation", None))
         self.stopButton.setText(QCoreApplication.translate("primaryWindow", u"Stop simulation", None))
+        self.captureThrottle.setText(QCoreApplication.translate("primaryWindow", u"Record Throttle", None))
+        self.captureBrake.setText(QCoreApplication.translate("primaryWindow", u"Record Brake", None))
+        self.captureSteerRight.setText(QCoreApplication.translate("primaryWindow", u"Record Steer Right", None))
+        self.captureSteerLeft.setText(QCoreApplication.translate("primaryWindow", u"Capture Steer Left", None))
+        self.startPipeline.setText(QCoreApplication.translate("primaryWindow", u"Start Learning", None))
         ___qtablewidgetitem = self.mainTable.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("primaryWindow", u"ID", None));
         ___qtablewidgetitem1 = self.mainTable.horizontalHeaderItem(1)

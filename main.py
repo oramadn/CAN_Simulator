@@ -1,5 +1,14 @@
 import sys
 import random
+import time
+import json
+import pandas as pd
+import numpy as np
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QInputDialog
 from PySide6.QtCore import Slot, QTimer
@@ -14,6 +23,7 @@ import primaryWindow
 class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     DEFAULT_THROTTLE_BRAKE_BYTE = '00'
     DEFAULT_STEERING_BYTES = ['00', '00']
+    DEFAULT_DURATION = 100
 
     # Indices and settings for variable frame simulation
     variable_frames = []
@@ -40,6 +50,11 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     static_frames = []
     generated_hex_numbers = []
 
+    # Capture settings
+    captured_can_frames = []
+    capture_cnt = 0
+    capture_mode = None
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -51,9 +66,93 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
         # Event connections
         self.startButton.clicked.connect(self.start_simulation)
+        self.captureThrottle.clicked.connect(self.enable_capture_mode)
+        self.captureBrake.clicked.connect(self.enable_capture_mode)
+        self.captureSteerLeft.clicked.connect(self.enable_capture_mode)
+        self.captureSteerRight.clicked.connect(self.enable_capture_mode)
+        self.startPipeline.clicked.connect(self.start_pipeline)
+        # self.startPipeline.hide()
+
+        self.capture_states = {
+            'Throttle': self.captureThrottle.setEnabled,
+            'Brake': self.captureBrake.setEnabled,
+            'SteerLeft': self.captureSteerLeft.setEnabled,
+            'SteerRight': self.captureSteerRight.setEnabled
+        }
 
         # Additional simulation windows
         self.throttleBrakeWindow = SimulationControl()
+
+
+    def start_pipeline(self):
+        json_files = ["json/Throttle_data.json", "json/Brake_data.json", "json/SteerRight_data.json",
+                      "json/SteerLeft_data.json"]
+
+        for json_file in json_files:
+            with open(json_file, "r") as file:
+                can_frames = json.load(file)
+
+            # Convert the list of dictionaries to a Pandas DataFrame
+            df = pd.DataFrame(can_frames)
+
+            # Save the DataFrame to a CSV file
+            csv_file = "data/" + json_file.replace(".json", ".csv")[5:]
+            df.to_csv(csv_file, index=False)
+            print("\n")
+            print(f"CSV file '{csv_file}' saved successfully.")
+
+        # csv_files = ["data/Throttle_data.csv", "data/Brake_data.csv", "data/SteerRight_data.csv",
+        #              "data/SteerLeft_data.csv"]
+        #
+        # # Load and combine CSV files into a single DataFrame
+        # dfs = [pd.read_csv(csv_file) for csv_file in csv_files]
+        # combined_df = pd.concat(dfs, ignore_index=True)
+        #
+        # # Shuffle the combined DataFrame (optional)
+        # combined_df = combined_df.sample(frac=1).reset_index(drop=True)
+        #
+        # # Display the combined DataFrame
+        # print("Combined DataFrame:")
+        # print(combined_df.head())
+
+    def capture(self, label):
+        for frame_list in [self.variable_frames_copy, self.static_frames]:
+            for obj in frame_list:
+                id_value = obj.id  # Replace "id" with the actual attribute name
+                data_value = obj.data  # Replace "data" with the actual attribute name
+                time.sleep(0.0001)
+                timestamp_value = time.time()  # Generate timestamp (current time)
+
+                new_obj = {"id": id_value, "data": data_value, "timestamp": timestamp_value,
+                           "action": self.capture_mode}
+                self.captured_can_frames.append(new_obj)
+
+        self.capture_cnt += 1
+        if self.capture_cnt == self.DEFAULT_DURATION:
+            json_file_path = f"json/{self.capture_mode}_data.json"
+            # Write the CAN frame data to a JSON file
+            with open(json_file_path, "w") as json_file:
+                json.dump(self.captured_can_frames, json_file, indent=4)
+
+            self.captured_can_frames = []
+            print(f"JSON file '{json_file_path}' created successfully.")
+
+    def enable_capture_mode(self):
+        sender = self.sender().objectName()
+        print(f"The button '{sender}' was clicked.")
+        self.capture_mode = sender.replace("capture", "")
+        self.capture_cnt = 0
+
+        if self.capture_mode in self.capture_states:  # Disables the pressed button
+            self.capture_states[self.capture_mode](False)
+
+        if all(not button.isEnabled() for button in  # Hides all buttons of all of them were clicked
+               [self.captureThrottle, self.captureBrake, self.captureSteerRight, self.captureSteerLeft]):
+            self.captureThrottle.hide()
+            self.captureBrake.hide()
+            self.captureSteerRight.hide()
+            self.captureSteerLeft.hide()
+            self.startPipeline.show()
 
     def set_steering_byte(self):
         """Calculate and update steering byte based on the slider value."""
@@ -116,6 +215,10 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         for frame in self.chosen_variable_frames:
             self.update_variable_bytes()
             self.variable_frames_copy[frame.idx].data = random.choice(frame.random_hex_numbers)
+
+            if self.capture_mode is not None and self.capture_cnt < self.DEFAULT_DURATION:  # Capture for period of duration
+                self.capture(self.capture_mode)
+
             self.clear_table()
             self.generate_table(self.variable_frames_copy + self.static_frames)
 
@@ -244,6 +347,10 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         # Generate the display table for the frames
         self.generate_table(self.frames)
         self.startButton.hide()  # Disable the start button after the simulation starts
+        self.captureThrottle.setEnabled(True)
+        self.captureBrake.setEnabled(True)
+        self.captureSteerRight.setEnabled(True)
+        self.captureSteerLeft.setEnabled(True)
 
         # Generate indices for specific control frames and others
         self.generate_variable_frames()
@@ -252,7 +359,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.chosen_variable_frames = [
             VariableFrame(self.variable_frames[i].id, self.variable_frames[i].data, i)
             for i in self.variable_frames_idx
-        ]#wow
+        ]
 
         # Generate and configure fixed hex values for variable frames
         self.generate_fixed_hex(5)
@@ -267,6 +374,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
         # Show the controls window and indicate the simulation is fully configured
         self.throttleBrakeWindow.show()
+
         print("Simulation setup complete and running.")
 
 
