@@ -17,6 +17,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
     # Indices and settings for variable frame simulation
     variable_frames = []
+    variable_frames_copy = None
     variable_frames_idx = []
     chosen_variable_frames = []
 

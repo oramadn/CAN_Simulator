@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt
 class SteeringWheelWidget(QWidget):
     def __init__(self):
         super().__init__()
-        self.steering_wheel_image = QPixmap("steering_wheel.png")
+        self.steering_wheel_image = QPixmap("images/steering_wheel.png")
         if self.steering_wheel_image.isNull():
             print("Failed to load the steering wheel image.")
         else:
