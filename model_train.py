@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import joblib
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -16,7 +17,7 @@ def hex_to_bytes(hex_str):
 def load_and_preprocess_data(filepath):
     """ Load and preprocess data from CSV. """
     df = pd.read_csv(filepath)
-    print(f"Loaded CSV with shape {df.shape}")
+    # print(f"Loaded CSV with shape {df.shape}")
     df['data_bytes'] = df['data'].apply(hex_to_bytes)
     max_bytes = max(df['data_bytes'].apply(len))
     byte_columns = [f'byte_{i}' for i in range(max_bytes)]
@@ -93,34 +94,19 @@ def load_and_predict(model, new_data_path, scaler, byte_columns):
     return predictions
 
 
-# Load data
-df, scaler, byte_columns = load_and_preprocess_data('data/combined_file.csv')
+def train(save=False):
+    # Load data
+    df, scaler, byte_columns = load_and_preprocess_data('data/combined_file.csv')
 
-# Encode labels
-label_encoder = LabelEncoder()
-X, y = create_sequences(df, byte_columns)
-y_encoded = label_encoder.fit_transform(y)
-y_categorical = to_categorical(y_encoded)
+    # Encode labels
+    label_encoder = LabelEncoder()
+    X, y = create_sequences(df, byte_columns)
+    y_encoded = label_encoder.fit_transform(y)
+    y_categorical = to_categorical(y_encoded)
 
-# Option to train or load model
-train_new_model = False
+    model, history = train_model(X, y_categorical, byte_columns, save, 50)  # save, Epochs, Batchsize
+    return model, scaler, label_encoder
 
-if train_new_model:
-    model, history = train_model(X, y_categorical, byte_columns, True, 150)  # save, Epochs, Batchsize
-else:
-    model = load_model('model.keras')
 
-# Use the model for predictions
-new_data_path = 'data/test.csv'
-predictions = load_and_predict(model, new_data_path, scaler, byte_columns)
-predicted_classes = np.argmax(predictions, axis=1)
-predicted_labels = label_encoder.inverse_transform(predicted_classes)
-print(predicted_labels)
-
-# Optionally, plot class probabilities for the first predicted sequence
-plt.figure(figsize=(10, 6))
-plt.bar(range(len(predictions[0])), predictions[0])
-plt.title('Predicted Class Probabilities for the First Sequence')
-plt.xlabel('Class')
-plt.ylabel('Probability')
-plt.show()
+if __name__ == "__main__":
+    train()

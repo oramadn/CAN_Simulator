@@ -4,6 +4,7 @@ import time
 import csv
 import pandas as pd
 import threading
+import subprocess
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QInputDialog
 from PySide6.QtCore import Slot, QTimer
@@ -13,12 +14,14 @@ from variable_frame import VariableFrame
 from can_message import CANmsg
 from simulation_control import SimulationControl
 import primaryWindow
+import model_train
+from realtime_predictor import RealTimePredictor
 
 
 class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     DEFAULT_THROTTLE_BRAKE_BYTE = '00'
     DEFAULT_STEERING_BYTES = ['00', '00']
-    DEFAULT_DURATION = 1000
+    DEFAULT_DURATION = 500
 
     # Indices and settings for variable frame simulation
     variable_frames = []
@@ -50,6 +53,8 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     capture_cnt = 0
     capture_mode = None
 
+    predictor = None
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -61,25 +66,30 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
         # Event connections
         self.startButton.clicked.connect(self.start_simulation)
-        self.captureThrottle.clicked.connect(self.enable_capture_mode)
-        self.captureBrake.clicked.connect(self.enable_capture_mode)
-        self.captureSteerLeft.clicked.connect(self.enable_capture_mode)
-        self.captureSteerRight.clicked.connect(self.enable_capture_mode)
-        self.startPipeline.clicked.connect(self.start_pipeline)
-        # self.startPipeline.hide()
+        self.captureIdleButton.clicked.connect(self.enable_capture)
+        self.captureThrottleButton.clicked.connect(self.enable_capture)
+        self.captureBrakeButton.clicked.connect(self.enable_capture)
+        self.captureSteerLeftButton.clicked.connect(self.enable_capture)
+        self.captureSteerRightButton.clicked.connect(self.enable_capture)
+        self.trainButton.clicked.connect(self.train_pipeline)
+        self.predictButton.clicked.connect(self.start_predict_pipeline)
+        self.trainButton.hide()
+        self.predictButton.hide()
 
         self.capture_states = {
-            'Throttle': self.captureThrottle.setEnabled,
-            'Brake': self.captureBrake.setEnabled,
-            'SteerLeft': self.captureSteerLeft.setEnabled,
-            'SteerRight': self.captureSteerRight.setEnabled
+            'Idle': self.captureIdleButton.setEnabled,
+            'Throttle': self.captureThrottleButton.setEnabled,
+            'Brake': self.captureBrakeButton.setEnabled,
+            'SteerLeft': self.captureSteerLeftButton.setEnabled,
+            'SteerRight': self.captureSteerRightButton.setEnabled
         }
 
         # Additional simulation windows
-        self.throttleBrakeWindow = SimulationControl()
+        self.simulationControlWindow = SimulationControl()
+        self.simulationControlWindow.state_label.hide()
 
-    def start_pipeline(self):
-        file_paths = ['data/Throttle_data.csv', 'data/Brake_data.csv', 'data/SteerRight_data.csv',
+    def train_pipeline(self):
+        file_paths = ['data/Idle_data.csv', 'data/Throttle_data.csv', 'data/Brake_data.csv', 'data/SteerRight_data.csv',
                       'data/SteerLeft_data.csv']
         output_file = 'data/combined_file.csv'
         # List to hold dataframes
@@ -97,9 +107,28 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         combined_df.to_csv(output_file, index=False)
         print(f"Combined CSV created at: {output_file}")
 
-    def capture(self, label):
+        model, scaler, label_encoder = model_train.train()
+        self.predictor = RealTimePredictor(model, scaler, label_encoder)
+        self.predictButton.show()
+        self.trainButton.hide()
+        self.simulationControlWindow.state_label.show()
+
+    def start_predict_pipeline(self):
+        # Capture for period of duration
+        predict_thread = threading.Thread(target=self.predict_pipeline)
+        predict_thread.start()
+
+    def predict_pipeline(self):
+        while True:
+            self.capture(1)
+            # print(self.predictor.predict(self.captured_can_frames))
+            self.simulationControlWindow.state_label.setText(self.predictor.predict(self.captured_can_frames))
+            self.captured_can_frames = []
+            time.sleep(0.001)
+
+    def capture(self, duration, save=False):
         iteration = 0
-        while iteration < self.DEFAULT_DURATION:
+        while iteration < duration:
             for frame_list in [self.variable_frames_copy, self.static_frames]:
                 for obj in frame_list:
                     id_value = obj.id  # Ensure this is the correct attribute
@@ -116,41 +145,45 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
                     self.captured_can_frames.append(new_obj)
             iteration += 1
 
-        # Dump data into CSV file
-        csv_file_path = f"data/{self.capture_mode}_data.csv"
-        fieldnames = ['id', 'data', 'timestamp', 'action']  # Column headers for CSV
-        with open(csv_file_path, 'w', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            for data in self.captured_can_frames:
-                writer.writerow(data)
+        if save:
+            # Dump data into CSV file
+            csv_file_path = f"data/{self.capture_mode}_data.csv"
+            fieldnames = ['id', 'data', 'timestamp', 'action']  # Column headers for CSV
+            with open(csv_file_path, 'w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                for data in self.captured_can_frames:
+                    writer.writerow(data)
 
-        self.captured_can_frames = []
-        print(f"CSV file '{csv_file_path}' created successfully.")
+            self.captured_can_frames = []
+            print(f"CSV file '{csv_file_path}' created successfully.")
 
-    def enable_capture_mode(self):
+    def enable_capture(self):
         sender = self.sender().objectName()
         print(f"The button '{sender}' was clicked.")
         self.capture_mode = sender.replace("capture", "")
+        self.capture_mode = self.capture_mode.replace("Button", "")
 
         # Capture for period of duration
-        capture_thread = threading.Thread(target=self.capture, args=(self.capture_mode,))
+        capture_thread = threading.Thread(target=self.capture, args=(self.DEFAULT_DURATION, True))
         capture_thread.start()
 
         if self.capture_mode in self.capture_states:  # Disables the pressed button
             self.capture_states[self.capture_mode](False)
 
         if all(not button.isEnabled() for button in  # Hides all buttons of all of them were clicked
-               [self.captureThrottle, self.captureBrake, self.captureSteerRight, self.captureSteerLeft]):
-            self.captureThrottle.hide()
-            self.captureBrake.hide()
-            self.captureSteerRight.hide()
-            self.captureSteerLeft.hide()
-            self.startPipeline.show()
+               [self.captureIdleButton, self.captureThrottleButton, self.captureBrakeButton, self.captureSteerRightButton,
+                self.captureSteerLeftButton]):
+            self.captureIdleButton.hide()
+            self.captureThrottleButton.hide()
+            self.captureBrakeButton.hide()
+            self.captureSteerRightButton.hide()
+            self.captureSteerLeftButton.hide()
+            self.trainButton.show()
 
     def set_steering_byte(self):
         """Calculate and update steering byte based on the slider value."""
-        value = self.throttleBrakeWindow.steering_slider.value()
+        value = self.simulationControlWindow.steering_slider.value()
         if value == 127:
             self.steering_byte = ['00', '00']
         else:
@@ -162,12 +195,12 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
     def set_brake_byte(self):
         """Set the brake byte from the brake slider's value."""
-        value = self.throttleBrakeWindow.brake_slider.value()
+        value = self.simulationControlWindow.brake_slider.value()
         self.brake_byte = format(value, '02x')
 
     def set_throttle_byte(self):
         """Set the throttle byte from the throttle slider's value."""
-        value = self.throttleBrakeWindow.throttle_slider.value()
+        value = self.simulationControlWindow.throttle_slider.value()
         self.throttle_byte = format(value, '02x')
 
     def update_byte(self, byte_name, frame_idx, byte_idx):
@@ -338,10 +371,11 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         # Generate the display table for the frames
         self.generate_table(self.frames)
         self.startButton.hide()  # Disable the start button after the simulation starts
-        self.captureThrottle.setEnabled(True)
-        self.captureBrake.setEnabled(True)
-        self.captureSteerRight.setEnabled(True)
-        self.captureSteerLeft.setEnabled(True)
+        self.captureIdleButton.setEnabled(True)
+        self.captureThrottleButton.setEnabled(True)
+        self.captureBrakeButton.setEnabled(True)
+        self.captureSteerRightButton.setEnabled(True)
+        self.captureSteerLeftButton.setEnabled(True)
 
         # Generate indices for specific control frames and others
         self.generate_variable_frames()
@@ -364,7 +398,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.variable_frames_timer.start(50)  # Timer set to trigger every 50 milliseconds
 
         # Show the controls window and indicate the simulation is fully configured
-        self.throttleBrakeWindow.show()
+        self.simulationControlWindow.show()
 
         print("Simulation setup complete and running.")
 

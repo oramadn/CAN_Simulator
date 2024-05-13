@@ -49,7 +49,17 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
-       <widget class="QPushButton" name="captureThrottle">
+       <widget class="QPushButton" name="captureIdleButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Record Idle</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="captureThrottleButton">
         <property name="enabled">
          <bool>false</bool>
         </property>
@@ -59,7 +69,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="captureBrake">
+       <widget class="QPushButton" name="captureBrakeButton">
         <property name="enabled">
          <bool>false</bool>
         </property>
@@ -69,7 +79,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="captureSteerRight">
+       <widget class="QPushButton" name="captureSteerRightButton">
         <property name="enabled">
          <bool>false</bool>
         </property>
@@ -79,19 +89,26 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="captureSteerLeft">
+       <widget class="QPushButton" name="captureSteerLeftButton">
         <property name="enabled">
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>Capture Steer Left</string>
+         <string>Record Steer Left</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="startPipeline">
+       <widget class="QPushButton" name="trainButton">
         <property name="text">
-         <string>Start Learning</string>
+         <string>Train Model</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="predictButton">
+        <property name="text">
+         <string>Load Model</string>
         </property>
        </widget>
       </item>

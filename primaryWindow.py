@@ -56,34 +56,45 @@ class Ui_primaryWindow(object):
 
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.captureThrottle = QPushButton(self.centralwidget)
-        self.captureThrottle.setObjectName(u"captureThrottle")
-        self.captureThrottle.setEnabled(False)
+        self.captureIdleButton = QPushButton(self.centralwidget)
+        self.captureIdleButton.setObjectName(u"captureIdleButton")
+        self.captureIdleButton.setEnabled(False)
 
-        self.horizontalLayout_4.addWidget(self.captureThrottle)
+        self.horizontalLayout_4.addWidget(self.captureIdleButton)
 
-        self.captureBrake = QPushButton(self.centralwidget)
-        self.captureBrake.setObjectName(u"captureBrake")
-        self.captureBrake.setEnabled(False)
+        self.captureThrottleButton = QPushButton(self.centralwidget)
+        self.captureThrottleButton.setObjectName(u"captureThrottleButton")
+        self.captureThrottleButton.setEnabled(False)
 
-        self.horizontalLayout_4.addWidget(self.captureBrake)
+        self.horizontalLayout_4.addWidget(self.captureThrottleButton)
 
-        self.captureSteerRight = QPushButton(self.centralwidget)
-        self.captureSteerRight.setObjectName(u"captureSteerRight")
-        self.captureSteerRight.setEnabled(False)
+        self.captureBrakeButton = QPushButton(self.centralwidget)
+        self.captureBrakeButton.setObjectName(u"captureBrakeButton")
+        self.captureBrakeButton.setEnabled(False)
 
-        self.horizontalLayout_4.addWidget(self.captureSteerRight)
+        self.horizontalLayout_4.addWidget(self.captureBrakeButton)
 
-        self.captureSteerLeft = QPushButton(self.centralwidget)
-        self.captureSteerLeft.setObjectName(u"captureSteerLeft")
-        self.captureSteerLeft.setEnabled(False)
+        self.captureSteerRightButton = QPushButton(self.centralwidget)
+        self.captureSteerRightButton.setObjectName(u"captureSteerRightButton")
+        self.captureSteerRightButton.setEnabled(False)
 
-        self.horizontalLayout_4.addWidget(self.captureSteerLeft)
+        self.horizontalLayout_4.addWidget(self.captureSteerRightButton)
 
-        self.startPipeline = QPushButton(self.centralwidget)
-        self.startPipeline.setObjectName(u"startPipeline")
+        self.captureSteerLeftButton = QPushButton(self.centralwidget)
+        self.captureSteerLeftButton.setObjectName(u"captureSteerLeftButton")
+        self.captureSteerLeftButton.setEnabled(False)
 
-        self.horizontalLayout_4.addWidget(self.startPipeline)
+        self.horizontalLayout_4.addWidget(self.captureSteerLeftButton)
+
+        self.trainButton = QPushButton(self.centralwidget)
+        self.trainButton.setObjectName(u"trainButton")
+
+        self.horizontalLayout_4.addWidget(self.trainButton)
+
+        self.predictButton = QPushButton(self.centralwidget)
+        self.predictButton.setObjectName(u"predictButton")
+
+        self.horizontalLayout_4.addWidget(self.predictButton)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_4)
@@ -132,11 +143,13 @@ class Ui_primaryWindow(object):
         primaryWindow.setWindowTitle(QCoreApplication.translate("primaryWindow", u"Simulator", None))
         self.startButton.setText(QCoreApplication.translate("primaryWindow", u"Start simulation", None))
         self.stopButton.setText(QCoreApplication.translate("primaryWindow", u"Stop simulation", None))
-        self.captureThrottle.setText(QCoreApplication.translate("primaryWindow", u"Record Throttle", None))
-        self.captureBrake.setText(QCoreApplication.translate("primaryWindow", u"Record Brake", None))
-        self.captureSteerRight.setText(QCoreApplication.translate("primaryWindow", u"Record Steer Right", None))
-        self.captureSteerLeft.setText(QCoreApplication.translate("primaryWindow", u"Capture Steer Left", None))
-        self.startPipeline.setText(QCoreApplication.translate("primaryWindow", u"Start Learning", None))
+        self.captureIdleButton.setText(QCoreApplication.translate("primaryWindow", u"Record Idle", None))
+        self.captureThrottleButton.setText(QCoreApplication.translate("primaryWindow", u"Record Throttle", None))
+        self.captureBrakeButton.setText(QCoreApplication.translate("primaryWindow", u"Record Brake", None))
+        self.captureSteerRightButton.setText(QCoreApplication.translate("primaryWindow", u"Record Steer Right", None))
+        self.captureSteerLeftButton.setText(QCoreApplication.translate("primaryWindow", u"Record Steer Left", None))
+        self.trainButton.setText(QCoreApplication.translate("primaryWindow", u"Train Model", None))
+        self.predictButton.setText(QCoreApplication.translate("primaryWindow", u"Load Model", None))
         ___qtablewidgetitem = self.mainTable.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("primaryWindow", u"ID", None));
         ___qtablewidgetitem1 = self.mainTable.horizontalHeaderItem(1)

@@ -10,7 +10,7 @@ class SteeringWheelWidget(QWidget):
         if self.steering_wheel_image.isNull():
             print("Failed to load the steering wheel image.")
         else:
-            self.setFixedSize(self.steering_wheel_image.size())
+            self.setMinimumSize(self.steering_wheel_image.size())
 
         self.angle = 0
 
