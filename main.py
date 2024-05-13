@@ -21,7 +21,7 @@ from realtime_predictor import RealTimePredictor
 class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     DEFAULT_THROTTLE_BRAKE_BYTE = '00'
     DEFAULT_STEERING_BYTES = ['00', '00']
-    DEFAULT_DURATION = 500
+    DEFAULT_DURATION = 1000
 
     # Indices and settings for variable frame simulation
     variable_frames = []
@@ -76,6 +76,9 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.trainButton.hide()
         self.predictButton.hide()
 
+        self.simulationControlWindow = SimulationControl()
+        self.simulationControlWindow.state_label.hide()
+
         self.capture_states = {
             'Idle': self.captureIdleButton.setEnabled,
             'Throttle': self.captureThrottleButton.setEnabled,
@@ -84,9 +87,12 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
             'SteerRight': self.captureSteerRightButton.setEnabled
         }
 
-        # Additional simulation windows
-        self.simulationControlWindow = SimulationControl()
-        self.simulationControlWindow.state_label.hide()
+        self.capture_map = {
+            'Throttle': [1, self.simulationControlWindow.throttle_slider.setValue],
+            'Brake': [1, self.simulationControlWindow.brake_slider.setValue],
+            'SteerLeft': [126, self.simulationControlWindow.steering_slider.setValue],
+            'SteerRight': [128, self.simulationControlWindow.steering_slider.setValue],
+        }
 
     def train_pipeline(self):
         file_paths = ['data/Idle_data.csv', 'data/Throttle_data.csv', 'data/Brake_data.csv', 'data/SteerRight_data.csv',
@@ -161,18 +167,26 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     def enable_capture(self):
         sender = self.sender().objectName()
         print(f"The button '{sender}' was clicked.")
-        self.capture_mode = sender.replace("capture", "")
-        self.capture_mode = self.capture_mode.replace("Button", "")
+        self.capture_mode = sender[len("capture"):-len("Button")]
+        print(self.capture_mode)
+        # Initialize capture state from (1) for non-idle actions
+        if self.capture_mode in self.capture_map:
+            self.capture_map[self.capture_mode][1](self.capture_map[self.capture_mode][0])
+        else:
+            print("No function found for the keyword:", self.capture_mode)
 
         # Capture for period of duration
         capture_thread = threading.Thread(target=self.capture, args=(self.DEFAULT_DURATION, True))
         capture_thread.start()
 
-        if self.capture_mode in self.capture_states:  # Disables the pressed button
+        # Disable the pressed button
+        if self.capture_mode in self.capture_states:
             self.capture_states[self.capture_mode](False)
 
-        if all(not button.isEnabled() for button in  # Hides all buttons of all of them were clicked
-               [self.captureIdleButton, self.captureThrottleButton, self.captureBrakeButton, self.captureSteerRightButton,
+        # Hide all buttons if all were clicked
+        if all(not button.isEnabled() for button in
+               [self.captureIdleButton, self.captureThrottleButton, self.captureBrakeButton,
+                self.captureSteerRightButton,
                 self.captureSteerLeftButton]):
             self.captureIdleButton.hide()
             self.captureThrottleButton.hide()

@@ -8,6 +8,8 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import SimpleRNN, LSTM, GRU, Dense, Dropout
 from tensorflow.keras.utils import to_categorical
 
+SEQUENCE_LENGTH = 20
+
 
 def hex_to_bytes(hex_str):
     """ Convert hexadecimal data to a list of integers (bytes). """
@@ -27,11 +29,11 @@ def load_and_preprocess_data(filepath):
     return df, scaler, byte_columns
 
 
-def create_sequences(df, byte_columns, sequence_length=30):
+def create_sequences(df, byte_columns):
     """ Create sequences for LSTM model. """
     X, y = [], []
-    for start_idx in range(0, len(df), sequence_length):
-        end_idx = start_idx + sequence_length
+    for start_idx in range(0, len(df), SEQUENCE_LENGTH):
+        end_idx = start_idx + SEQUENCE_LENGTH
         if end_idx > len(df):
             break
         seq = df.iloc[start_idx:end_idx][byte_columns].values
@@ -81,21 +83,25 @@ def train_model(X, y, byte_columns, save=False, epochs=100, batch_size=16):
         model.save('model.keras')
 
     # Plot accuracy
+    plt.figure()
     plt.plot(history.history['accuracy'])
     plt.plot(history.history['val_accuracy'])
     plt.title('Model accuracy')
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Validation'], loc='upper left')
+    plt.grid(True)
     plt.show()
 
     # Plot loss
+    plt.figure()
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.title('Model loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Validation'], loc='upper left')
+    plt.grid(True)
     plt.show()
 
     return model, history
