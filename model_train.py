@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import SimpleRNN, LSTM, GRU, Dense, Dropout
 from tensorflow.keras.utils import to_categorical
 
 
@@ -27,7 +27,7 @@ def load_and_preprocess_data(filepath):
     return df, scaler, byte_columns
 
 
-def create_sequences(df, byte_columns, sequence_length=20):
+def create_sequences(df, byte_columns, sequence_length=30):
     """ Create sequences for LSTM model. """
     X, y = [], []
     for start_idx in range(0, len(df), sequence_length):
@@ -44,6 +44,15 @@ def create_sequences(df, byte_columns, sequence_length=20):
 def train_model(X, y, byte_columns, save=False, epochs=100, batch_size=16):
     """ Train the LSTM model. """
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+    # model = Sequential([
+    #     SimpleRNN(50, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])),
+    #     Dropout(0.2),
+    #     SimpleRNN(50, return_sequences=True),
+    #     Dropout(0.2),
+    #     SimpleRNN(50),
+    #     Dropout(0.2),
+    #     Dense(y_train.shape[1], activation='softmax')
+    # ])
     model = Sequential([
         LSTM(50, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])),
         Dropout(0.2),
@@ -53,6 +62,15 @@ def train_model(X, y, byte_columns, save=False, epochs=100, batch_size=16):
         Dropout(0.2),
         Dense(y_train.shape[1], activation='softmax')
     ])
+    # model = Sequential([
+    #     GRU(50, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])),
+    #     Dropout(0.2),
+    #     GRU(50, return_sequences=True),
+    #     Dropout(0.2),
+    #     GRU(50),
+    #     Dropout(0.2),
+    #     Dense(y_train.shape[1], activation='softmax')
+    # ])
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val))
 
@@ -104,7 +122,7 @@ def train(save=False):
     y_encoded = label_encoder.fit_transform(y)
     y_categorical = to_categorical(y_encoded)
 
-    model, history = train_model(X, y_categorical, byte_columns, save, 50)  # save, Epochs, Batchsize
+    model, history = train_model(X, y_categorical, byte_columns, save, 100)  # save, Epochs, Batchsize
     return model, scaler, label_encoder
 
 
