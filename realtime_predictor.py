@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler, LabelEncoder
-from tensorflow.keras.models import load_model
 
 
 class RealTimePredictor:
@@ -17,7 +15,7 @@ class RealTimePredictor:
         """ Convert hexadecimal data to a list of integers (bytes). """
         return [int(hex_str[i:i + 2], 16) for i in range(0, len(hex_str), 2)]
 
-    def create_sequences(self, df, sequence_length=20):
+    def create_sequences(self, df, sequence_length):
         """ Create sequences for LSTM model. """
         X = []
         for start_idx in range(0, len(df), sequence_length):
@@ -28,12 +26,12 @@ class RealTimePredictor:
             X.append(seq)
         return np.array(X)
 
-    def predict(self, data):
+    def predict(self, data, sequence_length):
         df = pd.DataFrame([{'data': item['data']} for item in data])
         df['data'] = df['data'].apply(self.hex_to_bytes)
         df[self.byte_columns] = pd.DataFrame(df['data'].tolist(), index=df.index)
         df[self.byte_columns] = self.scaler.transform(df[self.byte_columns])
-        X_new = self.create_sequences(df)  # Assuming no need for labels in prediction
+        X_new = self.create_sequences(df, sequence_length)  # Assuming no need for labels in prediction
         predictions = self.model.predict(X_new)
         predicted_classes = np.argmax(predictions, axis=1)
         predicted_labels = self.label_encoder.inverse_transform(predicted_classes)

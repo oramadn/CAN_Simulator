@@ -118,6 +118,16 @@ class Ui_primaryWindow(object):
 
         self.verticalLayout.addLayout(self.horizontalLayout_3)
 
+        self.horizontalLayout_5 = QHBoxLayout()
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+        self.plotButton = QPushButton(self.centralwidget)
+        self.plotButton.setObjectName(u"plotButton")
+
+        self.horizontalLayout_5.addWidget(self.plotButton)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_5)
+
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.mainTable = QTableWidget(self.centralwidget)
@@ -172,6 +182,7 @@ class Ui_primaryWindow(object):
         self.throttleLabel.setText(QCoreApplication.translate("primaryWindow", u"Throttle", None))
         self.brakeLabel.setText(QCoreApplication.translate("primaryWindow", u"Brake", None))
         self.steeringLabel.setText(QCoreApplication.translate("primaryWindow", u"Steering", None))
+        self.plotButton.setText(QCoreApplication.translate("primaryWindow", u"Start plotting", None))
         ___qtablewidgetitem = self.mainTable.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("primaryWindow", u"ID", None));
         ___qtablewidgetitem1 = self.mainTable.horizontalHeaderItem(1)

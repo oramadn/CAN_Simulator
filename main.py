@@ -5,7 +5,7 @@ import csv
 import pandas as pd
 import threading
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QInputDialog
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QInputDialog, QVBoxLayout
 from PySide6.QtCore import Slot, QTimer
 from PySide6.QtGui import QBrush, QColor
 
@@ -16,13 +16,14 @@ import primaryWindow
 import model_train
 from realtime_predictor import RealTimePredictor
 from linear_map_frame import analyze_linear_relationship_per_frame
+from plotter import RealTimePlotter
 
 
 class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     DEFAULT_THROTTLE_BRAKE_BYTE = '00'
     DEFAULT_STEERING_BYTES = ['00', '00']
-    DEFAULT_DURATION = 1000
-    RANDOM_SEED = None
+    DEFAULT_DURATION = 500
+    RANDOM_SEED = 42
 
     # Indices and settings for variable frame simulation
     variable_frames = []
@@ -46,6 +47,8 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     steering_byte_idx = None
 
     # Additional settings for simulation
+    frames = None
+    frame_count = None
     file_paths = {
         'data/Idle_data.csv': 'Idle',
         'data/Throttle_data.csv': 'Throttle',
@@ -82,15 +85,17 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.trainButton.clicked.connect(self.train_pipeline)
         self.loadButton.clicked.connect(self.start_predict_pipeline)
         self.findFramesButton.clicked.connect(self.find_action_frames)
+        self.plotButton.clicked.connect(self.start_plotting)
         self.trainButton.hide()
         self.loadButton.hide()
-        self.findFramesButton.hide()
+        # self.findFramesButton.hide()
         self.throttleLabel.hide()
         self.brakeLabel.hide()
         self.steeringLabel.hide()
 
         self.simulationControlWindow = SimulationControl()
         self.simulationControlWindow.state_label.hide()
+
 
         self.capture_states = {
             'Idle': self.captureIdleButton.setEnabled,
@@ -108,6 +113,54 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         }
 
         self.found_action_frames = {}
+        self.table_reference = {}
+
+    def fetch_throttle_data(self):
+        reference_data = self.variable_frames_copy[self.table_reference["Throttle"][0]].data
+        reference_byte_idx = self.table_reference["Throttle"][1]
+
+        start_pos = reference_byte_idx * 2
+        byte = reference_data[start_pos:start_pos + 2]
+        val = int(byte, 16)
+        return val
+
+    def fetch_brake_data(self):
+        reference_data = self.variable_frames_copy[self.table_reference["Brake"][0]].data
+        reference_byte_idx = self.table_reference["Brake"][1]
+
+        start_pos = reference_byte_idx * 2
+        byte = reference_data[start_pos:start_pos + 2]
+        val = int(byte, 16)
+        return val
+
+    def fetch_steer_right_data(self):
+        reference_data = self.variable_frames_copy[self.table_reference["SteerRight"][0]].data
+        reference_byte_idx = self.table_reference["SteerRight"][1]
+
+        start_pos = reference_byte_idx * 2
+        byte = reference_data[start_pos:start_pos + 2]
+        val = int(byte, 16)
+        return val
+
+    def fetch_steer_left_data(self):
+        reference_data = self.variable_frames_copy[self.table_reference["SteerLeft"][0]].data
+        reference_byte_idx = self.table_reference["SteerLeft"][1]
+
+        start_pos = reference_byte_idx * 2
+        byte = reference_data[start_pos:start_pos + 2]
+        val = int(byte, 16)
+        return val
+
+    def start_plotting(self):
+        data_fetch_functions = {
+            'throttle': self.fetch_throttle_data,
+            'brake': self.fetch_brake_data,
+            'steer_right': self.fetch_steer_right_data,
+            'steer_left': self.fetch_steer_left_data
+        }
+        self.plotter = RealTimePlotter()
+        self.plotter.start_data_threads(data_fetch_functions)
+        self.plotter.show()
 
     def get_color_for_action(self, action):
         if action == 'Throttle':
@@ -130,9 +183,17 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         for file_path, action in self.file_paths.items():
             if file_path == "data/Idle_data.csv":
                 continue
-            best_frame_id, best_byte, best_r_squared = analyze_linear_relationship_per_frame(file_path)
+            best_frame_id, best_byte, best_r_squared = analyze_linear_relationship_per_frame(file_path,
+                                                                                             self.frame_count)
             self.found_action_frames[action] = (best_frame_id, best_byte, best_r_squared)
             print(f"The {file_path[len("data/"):-len("_data.csv")]} frame ID is {best_frame_id} and byte position {best_byte} has the most linear relationship with an R-squared of {best_r_squared:.2f}")
+
+        for action, data in self.found_action_frames.items():
+            for idx, frame in enumerate(self.variable_frames_copy):
+                if frame.id == data[0]:
+                    self.table_reference[action] = [idx, self.found_action_frames[action][1]]
+        print(self.table_reference)
+
         self.findFramesButton.hide()
         self.throttleLabel.show()
         self.brakeLabel.show()
@@ -155,7 +216,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         combined_df.to_csv(output_file, index=False)
         print(f"Combined CSV created at: {output_file}")
 
-        model, scaler, label_encoder = model_train.train()
+        model, scaler, label_encoder = model_train.train(self.frame_count)
         self.predictor = RealTimePredictor(model, scaler, label_encoder)
         self.loadButton.show()
         self.trainButton.hide()
@@ -170,7 +231,8 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         while True:
             self.capture(1)
             # print(self.predictor.predict(self.captured_can_frames))
-            self.simulationControlWindow.state_label.setText(self.predictor.predict(self.captured_can_frames))
+            self.simulationControlWindow.state_label.setText(self.predictor.predict(self.captured_can_frames,
+                                                                                    self.frame_count))
             self.captured_can_frames = []
             time.sleep(0.001)
 
@@ -213,10 +275,10 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         print(self.capture_mode)
 
         # Initialize capture state from (1) for non-idle actions
-        # if self.capture_mode in self.capture_map:
-        #     self.capture_map[self.capture_mode][1](self.capture_map[self.capture_mode][0])
-        # else:
-        #     print("No function found for the keyword:", self.capture_mode)
+        if self.capture_mode in self.capture_map:
+            self.capture_map[self.capture_mode][1](self.capture_map[self.capture_mode][0])
+        else:
+            print("No function found for the keyword:", self.capture_mode)
 
         # Capture for period of duration
         capture_thread = threading.Thread(target=self.capture, args=(self.DEFAULT_DURATION, True))
@@ -424,10 +486,10 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         print("Simulation start")
 
         # Request the user to specify the number of frames to simulate
-        frame_count = self.open_input_dialog()
+        self.frame_count = self.open_input_dialog()
 
         # Generate and split frames based on the specified count
-        self.generate_frames(frame_count)
+        self.generate_frames(self.frame_count)
         self.split_frames()  # Splits frames into variable and static frames with a ratio of 0.6 to 0.4
         self.variable_frames_copy = self.variable_frames.copy()
 

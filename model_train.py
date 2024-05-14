@@ -7,8 +7,6 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import SimpleRNN, LSTM, GRU, Dense, Dropout
 from tensorflow.keras.utils import to_categorical
 
-SEQUENCE_LENGTH = 20
-
 
 def hex_to_bytes(hex_str):
     """ Convert hexadecimal data to a list of integers (bytes). """
@@ -28,11 +26,11 @@ def load_and_preprocess_data(filepath):
     return df, scaler, byte_columns
 
 
-def create_sequences(df, byte_columns):
+def create_sequences(df, byte_columns, sequence_length):
     """ Create sequences for LSTM model. """
     X, y = [], []
-    for start_idx in range(0, len(df), SEQUENCE_LENGTH):
-        end_idx = start_idx + SEQUENCE_LENGTH
+    for start_idx in range(0, len(df), sequence_length):
+        end_idx = start_idx + sequence_length
         if end_idx > len(df):
             break
         seq = df.iloc[start_idx:end_idx][byte_columns].values
@@ -117,13 +115,13 @@ def load_and_predict(model, new_data_path, scaler, byte_columns):
     return predictions
 
 
-def train(save=False):
+def train(sequence_length, save=False):
     # Load data
     df, scaler, byte_columns = load_and_preprocess_data('data/combined_file.csv')
 
     # Encode labels
     label_encoder = LabelEncoder()
-    X, y = create_sequences(df, byte_columns)
+    X, y = create_sequences(df, byte_columns, sequence_length)
     y_encoded = label_encoder.fit_transform(y)
     y_categorical = to_categorical(y_encoded)
 

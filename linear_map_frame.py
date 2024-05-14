@@ -3,7 +3,7 @@ import numpy as np
 import statsmodels.api as sm
 
 
-def analyze_linear_relationship_per_frame(csv_file, num_frames=20):
+def analyze_linear_relationship_per_frame(csv_file, num_frames):
     df = pd.read_csv(csv_file)
     num_bytes = 8  # Assuming 8 bytes per frame
 
