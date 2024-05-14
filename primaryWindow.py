@@ -15,9 +15,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QHeaderView, QMainWindow,
-    QPushButton, QSizePolicy, QStatusBar, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QHeaderView,
+    QLabel, QMainWindow, QPushButton, QSizePolicy,
+    QStatusBar, QTableWidget, QTableWidgetItem, QVBoxLayout,
+    QWidget)
 
 class Ui_primaryWindow(object):
     def setupUi(self, primaryWindow):
@@ -34,22 +35,6 @@ class Ui_primaryWindow(object):
         self.startButton.setObjectName(u"startButton")
 
         self.horizontalLayout.addWidget(self.startButton)
-
-        self.verticalLayout_2 = QVBoxLayout()
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.stopButton = QPushButton(self.centralwidget)
-        self.stopButton.setObjectName(u"stopButton")
-        self.stopButton.setEnabled(False)
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.stopButton.sizePolicy().hasHeightForWidth())
-        self.stopButton.setSizePolicy(sizePolicy)
-
-        self.verticalLayout_2.addWidget(self.stopButton)
-
-
-        self.horizontalLayout.addLayout(self.verticalLayout_2)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -91,13 +76,47 @@ class Ui_primaryWindow(object):
 
         self.horizontalLayout_4.addWidget(self.trainButton)
 
-        self.predictButton = QPushButton(self.centralwidget)
-        self.predictButton.setObjectName(u"predictButton")
+        self.loadButton = QPushButton(self.centralwidget)
+        self.loadButton.setObjectName(u"loadButton")
 
-        self.horizontalLayout_4.addWidget(self.predictButton)
+        self.horizontalLayout_4.addWidget(self.loadButton)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_4)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.findFramesButton = QPushButton(self.centralwidget)
+        self.findFramesButton.setObjectName(u"findFramesButton")
+
+        self.horizontalLayout_3.addWidget(self.findFramesButton)
+
+        self.throttleLabel = QLabel(self.centralwidget)
+        self.throttleLabel.setObjectName(u"throttleLabel")
+        self.throttleLabel.setStyleSheet(u"color: rgb(125, 40, 40);")
+        self.throttleLabel.setFrameShape(QFrame.Shape.NoFrame)
+        self.throttleLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.horizontalLayout_3.addWidget(self.throttleLabel)
+
+        self.brakeLabel = QLabel(self.centralwidget)
+        self.brakeLabel.setObjectName(u"brakeLabel")
+        self.brakeLabel.setStyleSheet(u"color: rgb(50, 78, 161)")
+        self.brakeLabel.setFrameShape(QFrame.Shape.NoFrame)
+        self.brakeLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.horizontalLayout_3.addWidget(self.brakeLabel)
+
+        self.steeringLabel = QLabel(self.centralwidget)
+        self.steeringLabel.setObjectName(u"steeringLabel")
+        self.steeringLabel.setEnabled(True)
+        self.steeringLabel.setStyleSheet(u"color: rgb(90, 166, 95);")
+        self.steeringLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.horizontalLayout_3.addWidget(self.steeringLabel)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_3)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -142,14 +161,17 @@ class Ui_primaryWindow(object):
     def retranslateUi(self, primaryWindow):
         primaryWindow.setWindowTitle(QCoreApplication.translate("primaryWindow", u"Simulator", None))
         self.startButton.setText(QCoreApplication.translate("primaryWindow", u"Start simulation", None))
-        self.stopButton.setText(QCoreApplication.translate("primaryWindow", u"Stop simulation", None))
         self.captureIdleButton.setText(QCoreApplication.translate("primaryWindow", u"Record Idle", None))
         self.captureThrottleButton.setText(QCoreApplication.translate("primaryWindow", u"Record Throttle", None))
         self.captureBrakeButton.setText(QCoreApplication.translate("primaryWindow", u"Record Brake", None))
         self.captureSteerRightButton.setText(QCoreApplication.translate("primaryWindow", u"Record Steer Right", None))
         self.captureSteerLeftButton.setText(QCoreApplication.translate("primaryWindow", u"Record Steer Left", None))
         self.trainButton.setText(QCoreApplication.translate("primaryWindow", u"Train Model", None))
-        self.predictButton.setText(QCoreApplication.translate("primaryWindow", u"Load Model", None))
+        self.loadButton.setText(QCoreApplication.translate("primaryWindow", u"Load Model", None))
+        self.findFramesButton.setText(QCoreApplication.translate("primaryWindow", u"Find action frames", None))
+        self.throttleLabel.setText(QCoreApplication.translate("primaryWindow", u"Throttle", None))
+        self.brakeLabel.setText(QCoreApplication.translate("primaryWindow", u"Brake", None))
+        self.steeringLabel.setText(QCoreApplication.translate("primaryWindow", u"Steering", None))
         ___qtablewidgetitem = self.mainTable.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("primaryWindow", u"ID", None));
         ___qtablewidgetitem1 = self.mainTable.horizontalHeaderItem(1)

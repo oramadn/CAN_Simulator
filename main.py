@@ -4,7 +4,6 @@ import time
 import csv
 import pandas as pd
 import threading
-import subprocess
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QInputDialog
 from PySide6.QtCore import Slot, QTimer
@@ -16,12 +15,14 @@ from simulation_control import SimulationControl
 import primaryWindow
 import model_train
 from realtime_predictor import RealTimePredictor
+from linear_map_frame import analyze_linear_relationship_per_frame
 
 
 class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     DEFAULT_THROTTLE_BRAKE_BYTE = '00'
     DEFAULT_STEERING_BYTES = ['00', '00']
     DEFAULT_DURATION = 1000
+    RANDOM_SEED = None
 
     # Indices and settings for variable frame simulation
     variable_frames = []
@@ -45,6 +46,13 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     steering_byte_idx = None
 
     # Additional settings for simulation
+    file_paths = {
+        'data/Idle_data.csv': 'Idle',
+        'data/Throttle_data.csv': 'Throttle',
+        'data/Brake_data.csv': 'Brake',
+        'data/SteerRight_data.csv': 'SteerRight',
+        'data/SteerLeft_data.csv': 'SteerLeft'
+    }
     static_frames = []
     generated_hex_numbers = []
 
@@ -72,9 +80,14 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.captureSteerLeftButton.clicked.connect(self.enable_capture)
         self.captureSteerRightButton.clicked.connect(self.enable_capture)
         self.trainButton.clicked.connect(self.train_pipeline)
-        self.predictButton.clicked.connect(self.start_predict_pipeline)
+        self.loadButton.clicked.connect(self.start_predict_pipeline)
+        self.findFramesButton.clicked.connect(self.find_action_frames)
         self.trainButton.hide()
-        self.predictButton.hide()
+        self.loadButton.hide()
+        self.findFramesButton.hide()
+        self.throttleLabel.hide()
+        self.brakeLabel.hide()
+        self.steeringLabel.hide()
 
         self.simulationControlWindow = SimulationControl()
         self.simulationControlWindow.state_label.hide()
@@ -94,15 +107,44 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
             'SteerRight': [128, self.simulationControlWindow.steering_slider.setValue],
         }
 
+        self.found_action_frames = {}
+
+    def get_color_for_action(self, action):
+        if action == 'Throttle':
+            return QColor(125, 40, 40)  # Red
+        elif action == 'Brake':
+            return QColor(55, 78, 161)  # Blue
+        elif action in ['SteerRight', 'SteerLeft']:
+            return QColor(90, 166, 95)  # Green
+        return QColor(255, 255, 255)  # Default White
+
+    def color_cells(self, frame_id, byte_position, color):
+        for row in range(self.mainTable.rowCount()):
+            frame_item = self.mainTable.item(row, 0)
+            byte_item = self.mainTable.item(row, 1 + byte_position)  # Assuming byte positions start at column 1
+
+            if frame_item and frame_item.text()[2:] == frame_id:
+                byte_item.setBackground(QBrush(color))
+
+    def find_action_frames(self):
+        for file_path, action in self.file_paths.items():
+            if file_path == "data/Idle_data.csv":
+                continue
+            best_frame_id, best_byte, best_r_squared = analyze_linear_relationship_per_frame(file_path)
+            self.found_action_frames[action] = (best_frame_id, best_byte, best_r_squared)
+            print(f"The {file_path[len("data/"):-len("_data.csv")]} frame ID is {best_frame_id} and byte position {best_byte} has the most linear relationship with an R-squared of {best_r_squared:.2f}")
+        self.findFramesButton.hide()
+        self.throttleLabel.show()
+        self.brakeLabel.show()
+        self.steeringLabel.show()
+
     def train_pipeline(self):
-        file_paths = ['data/Idle_data.csv', 'data/Throttle_data.csv', 'data/Brake_data.csv', 'data/SteerRight_data.csv',
-                      'data/SteerLeft_data.csv']
         output_file = 'data/combined_file.csv'
         # List to hold dataframes
         dfs = []
 
         # Read each CSV file and append to list
-        for file_path in file_paths:
+        for file_path in self.file_paths.keys():
             df = pd.read_csv(file_path)
             dfs.append(df)
 
@@ -115,7 +157,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
         model, scaler, label_encoder = model_train.train()
         self.predictor = RealTimePredictor(model, scaler, label_encoder)
-        self.predictButton.show()
+        self.loadButton.show()
         self.trainButton.hide()
         self.simulationControlWindow.state_label.show()
 
@@ -169,11 +211,12 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         print(f"The button '{sender}' was clicked.")
         self.capture_mode = sender[len("capture"):-len("Button")]
         print(self.capture_mode)
+
         # Initialize capture state from (1) for non-idle actions
-        if self.capture_mode in self.capture_map:
-            self.capture_map[self.capture_mode][1](self.capture_map[self.capture_mode][0])
-        else:
-            print("No function found for the keyword:", self.capture_mode)
+        # if self.capture_mode in self.capture_map:
+        #     self.capture_map[self.capture_mode][1](self.capture_map[self.capture_mode][0])
+        # else:
+        #     print("No function found for the keyword:", self.capture_mode)
 
         # Capture for period of duration
         capture_thread = threading.Thread(target=self.capture, args=(self.DEFAULT_DURATION, True))
@@ -194,6 +237,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
             self.captureSteerRightButton.hide()
             self.captureSteerLeftButton.hide()
             self.trainButton.show()
+            self.findFramesButton.show()
 
     def set_steering_byte(self):
         """Calculate and update steering byte based on the slider value."""
@@ -260,15 +304,16 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
             self.clear_table()
             self.generate_table(self.variable_frames_copy + self.static_frames)
 
-            for idx, color in zip([self.throttle_frame_idx, self.brake_frame_idx, self.steering_frame_idx],
-                                  [(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
-                item = self.mainTable.item(idx, 0)
-                item.setBackground(QBrush(QColor(*color)))
+            # Colour the found action frames
+            if self.found_action_frames:
+                for action, (frame_id, byte_position, r_squared) in self.found_action_frames.items():
+                    color = self.get_color_for_action(action)
+                    self.color_cells(frame_id, byte_position, color)
 
     def generate_fixed_hex(self, num_of_random_hex):
+        # random.seed(self.RANDOM_SEED)
         # Calculate the number of bytes the hex number should have
         num_bytes = 8  # Each byte is represented by two hex characters
-        # random.seed(42)
         for frame in self.chosen_variable_frames:
             for _ in range(random.randint(2, num_of_random_hex)):
                 # Generate a random integer with the right number of bits (8 bits per byte)
@@ -283,6 +328,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
             Generate indices for variable bytes within a 16-byte frame.
             Depending on the flag, return either a single index or a pair of indices.
         """
+        random.seed(self.RANDOM_SEED)
         even_indices = list(range(0, 16, 2))
         if flag == 1:
             return random.sample(even_indices, 2)
@@ -293,6 +339,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         Randomly assigns indices to throttle, brake, steering, and other variable frames
         from the available list of frames.
         """
+        random.seed(self.RANDOM_SEED)
         # Create a list of indices based on the number of variable frames available
         frames = list(range(len(self.variable_frames)))
 
@@ -337,6 +384,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
             self.add_row(data_row_copy)
 
     def split_frames(self, ratio=0.6):
+        random.seed(self.RANDOM_SEED)
         random.shuffle(self.frames)
 
         split_index = int(len(self.frames) * ratio)
@@ -345,6 +393,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.static_frames = self.frames[split_index:]
 
     def generate_frames(self, frame_count):
+        random.seed(self.RANDOM_SEED)
         # Generate random IDs and DATA
         data = []
         for i in range(frame_count):
