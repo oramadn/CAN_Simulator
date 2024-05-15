@@ -86,16 +86,18 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.loadButton.clicked.connect(self.start_predict_pipeline)
         self.findFramesButton.clicked.connect(self.find_action_frames)
         self.plotButton.clicked.connect(self.start_plotting)
+
+        # Hiding initial buttons
         self.trainButton.hide()
         self.loadButton.hide()
-        # self.findFramesButton.hide()
+        self.findFramesButton.hide()
         self.throttleLabel.hide()
         self.brakeLabel.hide()
         self.steeringLabel.hide()
+        self.plotButton.hide()
 
         self.simulationControlWindow = SimulationControl()
         self.simulationControlWindow.state_label.hide()
-
 
         self.capture_states = {
             'Idle': self.captureIdleButton.setEnabled,
@@ -195,6 +197,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         print(self.table_reference)
 
         self.findFramesButton.hide()
+        self.plotButton.show()
         self.throttleLabel.show()
         self.brakeLabel.show()
         self.steeringLabel.show()
