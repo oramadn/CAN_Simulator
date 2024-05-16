@@ -1,7 +1,3 @@
-import time
-import random
-
-
 class CANmsg:
     def __init__(self, id=None, data=None):
         self.id = id
