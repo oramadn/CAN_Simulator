@@ -11,7 +11,7 @@ from PySide6.QtGui import QBrush, QColor
 
 from variable_frame import VariableFrame
 from can_message import CANmsg
-from simulation_control import SimulationControl
+from SimulationControlWindow import SimulationControl
 import primaryWindow
 import model_train
 from realtime_predictor import RealTimePredictor
@@ -50,11 +50,11 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
     frames = None
     frame_count = None
     file_paths = {
-        'data/Idle_data.csv': 'Idle',
-        'data/Throttle_data.csv': 'Throttle',
-        'data/Brake_data.csv': 'Brake',
-        'data/SteerRight_data.csv': 'SteerRight',
-        'data/SteerLeft_data.csv': 'SteerLeft'
+        'data/idle_data.csv': 'Idle',
+        'data/throttle_data.csv': 'Throttle',
+        'data/brake_data.csv': 'Brake',
+        'data/steerRight_data.csv': 'SteerRight',
+        'data/steerLeft_data.csv': 'SteerLeft'
     }
     static_frames = []
     generated_hex_numbers = []
@@ -82,7 +82,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.captureBrakeButton.clicked.connect(self.enable_capture)
         self.captureSteerLeftButton.clicked.connect(self.enable_capture)
         self.captureSteerRightButton.clicked.connect(self.enable_capture)
-        self.trainButton.clicked.connect(self.train_pipeline)
+        self.trainButton.clicked.connect(self.start_train_pipeline)
         self.loadButton.clicked.connect(self.start_predict_pipeline)
         self.findFramesButton.clicked.connect(self.find_action_frames)
         self.plotButton.clicked.connect(self.start_plotting)
@@ -183,7 +183,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
 
     def find_action_frames(self):
         for file_path, action in self.file_paths.items():
-            if file_path == "data/Idle_data.csv":
+            if file_path == "data/idle_data.csv":
                 continue
             best_frame_id, best_byte, best_r_squared = analyze_linear_relationship_per_frame(file_path,
                                                                                              self.frame_count)
@@ -202,7 +202,7 @@ class PrimaryWindow(QMainWindow, primaryWindow.Ui_primaryWindow):
         self.brakeLabel.show()
         self.steeringLabel.show()
 
-    def train_pipeline(self):
+    def start_train_pipeline(self):
         output_file = 'data/combined_file.csv'
         # List to hold dataframes
         dfs = []

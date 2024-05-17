@@ -34,7 +34,7 @@ def create_sequences(df, byte_columns, sequence_length):
         if end_idx > len(df):
             break
         seq = df.iloc[start_idx:end_idx][byte_columns].values
-        label = df.iloc[start_idx]['action']
+        label = df.iloc[start_idx]['label']
         X.append(seq)
         y.append(label)
     return np.array(X), np.array(y)

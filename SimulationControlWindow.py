@@ -30,8 +30,21 @@ class SimulationControl(QWidget):
         # Overall layout container
         main_layout = QVBoxLayout()  # This will hold everything
 
+        button_layout = QHBoxLayout()
         title_layout = QHBoxLayout()
         gadget_layout = QHBoxLayout()
+
+        # Capturing buttons
+        self.captureIdleButton = QPushButton("Record Idle")
+        self.captureThrottleButton = QPushButton("Record Throttle")
+        self.captureBrakeButton = QPushButton("Record Brake")
+        self.captureSteerRightButton = QPushButton("Record Steer Right")
+        self.captureSteerLeftButton = QPushButton("Record Steer Left")
+        button_layout.addWidget(self.captureIdleButton)
+        button_layout.addWidget(self.captureThrottleButton)
+        button_layout.addWidget(self.captureBrakeButton)
+        button_layout.addWidget(self.captureSteerRightButton)
+        button_layout.addWidget(self.captureSteerLeftButton)
 
         # Throttle title
         self.throttle_label = QLabel("Throttle")
@@ -125,6 +138,7 @@ class SimulationControl(QWidget):
         self.state_label.setStyleSheet("QLabel { color : #cccccc; }")
 
         # Add layouts to the main window layout
+        main_layout.addLayout(button_layout)
         main_layout.addLayout(title_layout)
         main_layout.addLayout(gadget_layout)
         main_layout.addWidget(self.state_label)

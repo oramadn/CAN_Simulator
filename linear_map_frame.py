@@ -53,5 +53,5 @@ def analyze_linear_relationship_per_frame(csv_file, num_frames):
 
 
 if __name__ == "__main__":
-    best_frame_id, best_byte, best_r_squared = analyze_linear_relationship_per_frame('data/Brake_data.csv')
+    best_frame_id, best_byte, best_r_squared = analyze_linear_relationship_per_frame('data/brake_data.csv')
     print(f"The frame ID {best_frame_id} and byte position {best_byte} has the most linear relationship with an R-squared of {best_r_squared:.2f}")
