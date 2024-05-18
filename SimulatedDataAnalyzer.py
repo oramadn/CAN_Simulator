@@ -17,6 +17,7 @@ import model_train
 from realtime_predictor import RealTimePredictor
 from gadgets.GaugeGadget import GaugeWidget
 from gadgets.LCDGadget import LCDWidget
+from gadgets.VerticalBarGadget import VerticalBarWidget
 
 RANDOM_SEED = 21
 CAPTURE_ITERATION = 500
@@ -108,6 +109,7 @@ class DataGadgets(QWidget):
         self.gadget_selector.addItem("None", None)  # Default
         self.gadget_selector.addItem("Gauge", ('GaugeWidget', 0, 255))
         self.gadget_selector.addItem("LCD Screen", ('LCDWidget', None, None))
+        self.gadget_selector.addItem("Bar", ('VerticalBarWidget', None, None))
         self.gadget_selector.currentIndexChanged.connect(self.gadget_selected)
         self.main_layout.addWidget(self.gadget_selector, 0, Qt.AlignHCenter)
 
@@ -117,38 +119,41 @@ class DataGadgets(QWidget):
             gadget_type, min_val, max_val = item_data
             if self.current_gadget:
                 self.main_layout.removeWidget(self.current_gadget)
-                self.current_gadget.deleteLater()  # Properly delete the widget
+                self.current_gadget.deleteLater()
+
+            self.label.setVisible(False)  # Hide label as a gadget is selected
+
             if gadget_type == "GaugeWidget":
                 self.current_gadget = GaugeWidget(min_val, max_val)
                 self.current_gadget.setFixedSize(150, 150)
-                self.main_layout.addWidget(self.current_gadget, 2, Qt.AlignHCenter)  # Add at position 2
-                self.init_byte_selector()
-            if gadget_type == "LCDWidget":
+            elif gadget_type == "LCDWidget":
                 self.current_gadget = LCDWidget()
-                self.main_layout.addWidget(self.current_gadget, 2, Qt.AlignHCenter)
+            elif gadget_type == "VerticalBarWidget":
+                self.current_gadget = VerticalBarWidget()
+
+            if self.current_gadget:
+                self.main_layout.insertWidget(1, self.current_gadget, alignment=Qt.AlignCenter)  # Insert the gadget at position 1
                 self.init_byte_selector()
+
+        else:  # In case "None" is selected
+            self.label.setVisible(True)
 
     def init_byte_selector(self):
         if not hasattr(self, 'byte_selector'):
+            self.byte_layout = QHBoxLayout()
             label = QLabel("Byte:")
             self.byte_selector = QComboBox()
-            layout = QHBoxLayout()
-            layout.addWidget(label)
-            layout.addWidget(self.byte_selector)
-            self.byte_layout = layout  # Save layout to be able to re-insert it
-        # else:
-        #     self.main_layout.removeLayout(self.byte_layout)  # Remove the old layout first
+            self.byte_selector.addItem("None", None)
+            for i in range(8):
+                self.byte_selector.addItem(str(i), i)
 
-        self.byte_selector.clear()
-        self.byte_selector.addItem("None", None)
-        for i in range(8):
-            self.byte_selector.addItem(str(i), i)  # i as userData
+            self.byte_layout.addWidget(label)
+            self.byte_layout.addWidget(self.byte_selector)
+            self.byte_selector.currentIndexChanged.connect(self.byte_combobox_triggered)
 
-        self.byte_selector.currentIndexChanged.connect(lambda
-                                                           index: self.byte_combobox_triggered(self.byte_selector.itemData(
-            self.byte_selector.currentIndex())))
-        self.byteComboBoxConnected = True  # Set flag to True as it's now connected
-        self.main_layout.addLayout(self.byte_layout, 3)  # Add at the end
+        # Ensure the byte selector is always at the bottom of all widgets
+        if self.byte_layout not in self.main_layout.children():
+            self.main_layout.addLayout(self.byte_layout)
         self.setAcceptDrops(True)
 
     def byte_combobox_triggered(self, byte_index):
