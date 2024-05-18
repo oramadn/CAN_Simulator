@@ -18,6 +18,7 @@ from realtime_predictor import RealTimePredictor
 from gadgets.GaugeGadget import GaugeWidget
 from gadgets.LCDGadget import LCDWidget
 from gadgets.VerticalBarGadget import VerticalBarWidget
+from gadgets.LineGraphGadget import LineChartWidget
 
 RANDOM_SEED = 21
 CAPTURE_ITERATION = 500
@@ -86,12 +87,12 @@ class DataGadgets(QWidget):
     def __init__(self, get_current_frames):
         super().__init__()
         self.get_current_frames = get_current_frames
-        self.setFixedSize(200, 240)
+        self.setFixedSize(400, 240)
         self.main_layout = QVBoxLayout(self)
         self.current_id = None
         self.current_byte_idx = None
+        self.current_gadget = None
         self.byteComboBoxConnected = False  # Flag to track connection status
-        self.current_gadget = None  # To hold the current gadget
 
         # Initial dropdown to select the type of gadget
         self.init_gadget_selector()
@@ -163,10 +164,6 @@ class DataGadgets(QWidget):
             self.main_layout.addLayout(self.byte_layout)
         self.setAcceptDrops(True)
 
-    def byte_combobox_triggered(self, byte_index):
-        self.current_byte_idx = byte_index
-        self.timer.start(50)
-
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
@@ -182,6 +179,9 @@ class DataGadgets(QWidget):
                 self.selected_id_label.setText(f"Selected ID: {self.current_id}")
                 self.selected_id_label.setVisible(True)
 
+    def byte_combobox_triggered(self, byte_index):
+        self.current_byte_idx = byte_index
+        self.timer.start(50)
 
     def update_display(self):
         if self.current_id and self.current_byte_idx is not None:
@@ -208,12 +208,75 @@ class DataControls(QWidget):
 
 
 class DataPlotter(QWidget):
-    def __init__(self):
+    def __init__(self, get_current_frames):
         super().__init__()
-        layout = QVBoxLayout()
-        label = QLabel("Plotters based on Data")
-        layout.addWidget(label)
-        self.setLayout(layout)
+        self.get_current_frames = get_current_frames
+        self.main_layout = QVBoxLayout(self)
+        self.current_id = None
+        self.current_byte_idx = None
+        self.current_plotter = None
+        self.byte_selector = None
+
+        self.selected_id_label = QLabel("Drop ID to plot")
+        self.main_layout.addWidget(self.selected_id_label, 0, Qt.AlignHCenter)
+
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasText():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        new_id = event.mimeData().text()
+        if len(new_id) != 2:  # Assuming IDs are longer than 2 characters
+            self.current_id = new_id
+            self.init_plotter()  # Initialize the plotter with the title of the selected ID
+            self.init_byte_selector()
+            self.selected_id_label.deleteLater()  # Remove the label after the ID is dropped
+
+    def init_plotter(self):
+        if self.current_plotter:  # Reset if there's an existing plotter
+            self.main_layout.removeWidget(self.current_plotter)
+            self.current_plotter.deleteLater()
+
+        self.current_plotter = LineChartWidget()
+        self.current_plotter.setFixedSize(400, 350)  # Set the fixed size for the plotter
+        self.current_plotter.chart.setTitle(f"Selected ID: {self.current_id}")  # Set the title with the current ID
+        self.main_layout.addWidget(self.current_plotter, 1, Qt.AlignHCenter)  # Add the plotter to the layout
+
+    def init_byte_selector(self):
+        if self.byte_selector:  # Clear the existing byte selector if any
+            self.main_layout.removeWidget(self.byte_selector)
+            self.byte_selector.deleteLater()
+
+        self.byte_selector = QComboBox()
+        self.byte_selector.addItem("Select Byte", None)  # Default prompt item
+        for i in range(8):  # Assuming bytes 0-7
+            self.byte_selector.addItem(str(i), i)
+
+        self.byte_selector.currentIndexChanged.connect(self.byte_combobox_triggered)
+        self.main_layout.addWidget(self.byte_selector, 2, Qt.AlignHCenter)  # Position after the plotter
+
+    def byte_combobox_triggered(self, index):
+        if index > 0:  # Ensure it's not the default prompt
+            self.current_byte_idx = self.byte_selector.itemData(index)
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.update_display)
+            self.timer.start(50)  # Update every second
+
+    def update_display(self):
+        if self.current_id and self.current_byte_idx is not None:
+            data = self.find_data_by_id()
+            if data:
+                hex_data = data[self.current_byte_idx * 2:(self.current_byte_idx * 2) + 2]
+                self.current_plotter.set_value(int(hex_data, 16))
+
+    def find_data_by_id(self):
+        frames = self.get_current_frames()
+        for frame in frames:
+            if frame['id'] == self.current_id:
+                return frame['data']
+
 
 
 class MainWindow(QMainWindow):
@@ -260,19 +323,23 @@ class MainWindow(QMainWindow):
         right_layout = QVBoxLayout()
 
         top_right_layout = QGridLayout()
-        self.gadgets = []  #
+        self.gadgets = []
 
         for row in range(2):
-            row_list = []  # List to hold gadgets for this row
+            row_list = []
             for col in range(3):
                 gadget = DataGadgets(self.get_current_frames)
                 top_right_layout.addWidget(gadget, row, col)
                 row_list.append(gadget)
-            self.gadgets.append(row_list)
+        self.gadgets.append(row_list)
 
-        bottom_right_layout = QVBoxLayout()
-        plotter = DataPlotter()
-        bottom_right_layout.addWidget(plotter)
+        bottom_right_layout = QHBoxLayout()
+        self.plotters = []
+
+        for plot in range(3):
+            plotter = DataPlotter(self.get_current_frames)
+            bottom_right_layout.addWidget(plotter)
+            self.plotters.append(row_list)
 
         right_layout.addLayout(top_right_layout)
         right_layout.addLayout(bottom_right_layout)
