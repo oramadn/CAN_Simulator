@@ -97,8 +97,8 @@ class DataGadgets(QWidget):
         self.init_gadget_selector()
 
         # Label for displaying the selected ID
-        self.label = QLabel("Choose a gadget")
-        self.main_layout.addWidget(self.label)
+        self.gadget_label = QLabel("Choose a gadget")
+        self.main_layout.addWidget(self.gadget_label)
 
         # Timer to update the label every 50ms
         self.timer = QTimer(self)
@@ -113,6 +113,11 @@ class DataGadgets(QWidget):
         self.gadget_selector.currentIndexChanged.connect(self.gadget_selected)
         self.main_layout.addWidget(self.gadget_selector, 0, Qt.AlignHCenter)
 
+        # Top label to provide context or title
+        self.selected_id_label = QLabel("Gadget Control Panel")
+        self.main_layout.addWidget(self.selected_id_label)
+        self.selected_id_label.setVisible(False)
+
     def gadget_selected(self, index):
         item_data = self.gadget_selector.itemData(index)
         if item_data:
@@ -121,7 +126,7 @@ class DataGadgets(QWidget):
                 self.main_layout.removeWidget(self.current_gadget)
                 self.current_gadget.deleteLater()
 
-            self.label.setVisible(False)  # Hide label as a gadget is selected
+            self.gadget_label.setVisible(False)  # Hide label as a gadget is selected
 
             if gadget_type == "GaugeWidget":
                 self.current_gadget = GaugeWidget(min_val, max_val)
@@ -132,11 +137,13 @@ class DataGadgets(QWidget):
                 self.current_gadget = VerticalBarWidget()
 
             if self.current_gadget:
-                self.main_layout.insertWidget(1, self.current_gadget, alignment=Qt.AlignCenter)  # Insert the gadget at position 1
+                self.main_layout.insertWidget(1,
+                                              self.current_gadget,
+                                              alignment=Qt.AlignCenter)  # Insert the gadget at position 1
                 self.init_byte_selector()
 
         else:  # In case "None" is selected
-            self.label.setVisible(True)
+            self.gadget_label.setVisible(True)
 
     def init_byte_selector(self):
         if not hasattr(self, 'byte_selector'):
@@ -168,17 +175,20 @@ class DataGadgets(QWidget):
         new_id = event.mimeData().text()
         if new_id:
             if len(new_id) == 2:
-                self.label.setText("Please insert an ID only!")
+                self.gadget_label.setText("Please insert an ID only!")
             else:
                 self.current_id = new_id
                 self.update_display()
-                self.label.setText(f"Selected ID: {self.current_id}")
+                self.selected_id_label.setText(f"Selected ID: {self.current_id}")
+                self.selected_id_label.setVisible(True)
+
 
     def update_display(self):
         if self.current_id and self.current_byte_idx is not None:
             data = self.find_data_by_id()
             if data:
-                hex_data = data[self.current_byte_idx * 2:(self.current_byte_idx * 2) + 2]
+                hex_data = data[(self.current_byte_idx - 1) * 2:(
+                                                                        self.current_byte_idx - 1) * 2 + 2]  # -1 since actual idx starts at 1 becuase None was added as an option
                 self.current_gadget.set_value(int(hex_data, 16))
 
     def find_data_by_id(self):
@@ -225,21 +235,27 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         self.main_layout = QVBoxLayout(main_widget)
 
-        self.top_layout = QHBoxLayout()
+        content_layout = QHBoxLayout()
+
+        self.table_layout = QVBoxLayout()
+
+        self.button_layout = QHBoxLayout()
         self.findFramesButton = QPushButton("Find frames")
         self.trainButton = QPushButton("Train model")
         self.predictButton = QPushButton("Load trained model")
-        self.top_layout.addWidget(self.findFramesButton)
-        self.top_layout.addWidget(self.trainButton)
-        self.top_layout.addWidget(self.predictButton)
+        self.button_layout.addWidget(self.findFramesButton)
+        self.button_layout.addWidget(self.trainButton)
+        self.button_layout.addWidget(self.predictButton)
 
-        content_layout = QHBoxLayout()
-        table_layout = QVBoxLayout()
         self.table = DataTable()
         self.controls = DataControls()
-        table_layout.addWidget(self.table)
-        table_layout.addWidget(self.controls)
-        content_layout.addLayout(table_layout)
+
+        self.table_layout.addLayout(self.button_layout)
+        self.table_layout.addWidget(self.table)
+        self.table_layout.addWidget(self.controls)
+
+        content_layout.addLayout(self.button_layout)
+        content_layout.addLayout(self.table_layout)
 
         right_layout = QVBoxLayout()
 
@@ -263,7 +279,6 @@ class MainWindow(QMainWindow):
 
         content_layout.addLayout(right_layout)
 
-        self.main_layout.addLayout(self.top_layout)
         self.main_layout.addLayout(content_layout)
 
         self.setup_control_ui()

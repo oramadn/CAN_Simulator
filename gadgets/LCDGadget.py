@@ -11,7 +11,7 @@ class LCDWidget(QWidget):
 
     def initUI(self):
         self.lcd = QLCDNumber(self)
-        self.lcd.setFixedSize(160, 100)
+        self.lcd.setFixedSize(150, 150)
         self.lcd.setDigitCount(3)  # Display up to 3 digits
         self.lcd.display(0)  # Start with 0
 

@@ -10,6 +10,7 @@ class VerticalBarWidget(QWidget):
     def initUI(self):
         # Initialize the progress bar
         self.progressBar = QProgressBar(self)
+        self.progressBar.setFixedHeight(130)
         self.progressBar.setOrientation(Qt.Vertical)  # Set the progress bar to vertical
         self.progressBar.setMaximum(255)  # Ensure the maximum is set to 255
         self.progressBar.setValue(0)  # Start at 0 to show the effect clearly
