@@ -6,15 +6,16 @@ import time
 import pandas as pd
 
 from PySide6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTableWidget,
-                               QTableWidgetItem, QLabel, QInputDialog, QGridLayout)
-from PySide6.QtCore import QTimer
-from PySide6.QtGui import QColor
+                               QTableWidgetItem, QLabel, QInputDialog, QGridLayout, QComboBox)
+from PySide6.QtCore import QTimer, QMimeData, Qt
+from PySide6.QtGui import QColor, QDrag, QDragEnterEvent
 
 from frame_generator import generate_random_frames
 from SimulationControlWindow import SimulationControl
 from linear_map_frame import analyze_linear_relationship_per_frame
 import model_train
 from realtime_predictor import RealTimePredictor
+from gadgets.Gauge import GaugeWidget
 
 RANDOM_SEED = 21
 CAPTURE_ITERATION = 500
@@ -30,8 +31,12 @@ class DataTable(QTableWidget):
         self.setFixedWidth(460)
         self.setMinimumHeight(550)
 
+        self.setDragEnabled(True)
+        self.observers = []  # List to track which IDs are being observed
+
     def populate_table(self, frames, found_action_frames):
         """Fill the table with the data in frames."""
+        self.frames = frames
         self.setRowCount(len(frames))
         for row, frame in enumerate(frames):
             # Set the ID in the first column
@@ -64,18 +69,113 @@ class DataTable(QTableWidget):
             return QColor(90, 166, 95)  # Green
         return QColor(255, 255, 255)  # Default to white if no match
 
+    def mouseMoveEvent(self, event):
+        if event.buttons() != Qt.LeftButton:
+            return
+
+        mimeData = QMimeData()
+        drag = QDrag(self)
+        mimeData.setText(self.currentItem().text())  # Assuming the drag initiates from the ID column
+        drag.setMimeData(mimeData)
+        drag.exec(Qt.CopyAction)
+
 
 class DataGadgets(QWidget):
-    def __init__(self):
+    def __init__(self, get_current_frames):
         super().__init__()
-        layout = QVBoxLayout()
-        self.label = QLabel("Gadgets Based on Data")
-        layout.addWidget(self.label)
-        self.setLayout(layout)
+        self.get_current_frames = get_current_frames
+        self.setFixedSize(200, 240)
+        self.main_layout = QVBoxLayout(self)
+        self.current_id = None
+        self.current_byte_idx = None
+        self.byteComboBoxConnected = False  # Flag to track connection status
+        self.current_gadget = None  # To hold the current gadget
 
-    def update_label(self, new_text):
-        """Update the text of the label."""
-        self.label.setText(new_text)
+        # Initial dropdown to select the type of gadget
+        self.init_gadget_selector()
+
+        # Label for displaying the selected ID
+        self.label = QLabel("Choose a gadget")
+        self.main_layout.addWidget(self.label)
+
+
+        # Timer to update the label every 50ms
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_display)
+
+    def init_gadget_selector(self):
+        self.gadget_selector = QComboBox()
+        self.gadget_selector.addItem("None", None)  # Default
+        self.gadget_selector.addItem("GaugeWidget 0-255", ('GaugeWidget', 0, 255))
+        self.gadget_selector.addItem("GaugeWidget 0-180", ('GaugeWidget', 0, 180))
+        self.gadget_selector.currentIndexChanged.connect(self.gadget_selected)
+        self.main_layout.addWidget(self.gadget_selector, 0, Qt.AlignHCenter)
+
+    def gadget_selected(self, index):
+        item_data = self.gadget_selector.itemData(index)
+        if item_data:
+            gadget_type, min_val, max_val = item_data
+            if self.current_gadget:
+                self.main_layout.removeWidget(self.current_gadget)
+                self.current_gadget.deleteLater()  # Properly delete the widget
+            if gadget_type == "GaugeWidget":
+                self.current_gadget = GaugeWidget(min_val, max_val)
+                self.current_gadget.setFixedSize(150, 150)
+                self.main_layout.addWidget(self.current_gadget, 2, Qt.AlignHCenter)  # Add at position 2
+                self.init_byte_selector()
+
+    def init_byte_selector(self):
+        if not hasattr(self, 'byte_selector'):
+            label = QLabel("Byte:")
+            self.byte_selector = QComboBox()
+            layout = QHBoxLayout()
+            layout.addWidget(label)
+            layout.addWidget(self.byte_selector)
+            self.byte_layout = layout  # Save layout to be able to re-insert it
+        else:
+            self.main_layout.removeLayout(self.byte_layout)  # Remove the old layout first
+
+        self.byte_selector.clear()
+        self.byte_selector.addItem("None", None)
+        for i in range(8):
+            self.byte_selector.addItem(str(i), i)  # i as userData
+
+        self.byte_selector.currentIndexChanged.connect(lambda
+                                                      index: self.byte_combobox_triggered(self.byte_selector.itemData(self.byte_selector.currentIndex())))
+        self.byteComboBoxConnected = True  # Set flag to True as it's now connected
+        self.main_layout.addLayout(self.byte_layout, 3)  # Add at the end
+        self.setAcceptDrops(True)
+
+    def byte_combobox_triggered(self, byte_index):
+        self.current_byte_idx = byte_index
+        self.timer.start(50)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasText():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        new_id = event.mimeData().text()
+        if new_id:
+            if len(new_id) == 2:
+                self.label.setText("Please insert an ID only!")
+            else:
+                self.current_id = new_id
+                self.update_display()
+                self.label.setText(f"Selected ID: {self.current_id}")
+
+    def update_display(self):
+        if self.current_id and self.current_byte_idx is not None:
+            data = self.find_data_by_id()
+            if data:
+                hex_data = data[self.current_byte_idx * 2:(self.current_byte_idx * 2) + 2]
+                self.current_gadget.set_value(int(hex_data, 16))
+
+    def find_data_by_id(self):
+        frames = self.get_current_frames()
+        for frame in frames:
+            if frame['id'] == self.current_id:
+                return frame['data']
 
 
 class DataControls(QWidget):
@@ -139,7 +239,7 @@ class MainWindow(QMainWindow):
         for row in range(2):
             row_list = []  # List to hold gadgets for this row
             for col in range(3):
-                gadget = DataGadgets()
+                gadget = DataGadgets(self.get_current_frames)
                 top_right_layout.addWidget(gadget, row, col)
                 row_list.append(gadget)
             self.gadgets.append(row_list)
@@ -232,6 +332,9 @@ class MainWindow(QMainWindow):
         self.update_steering_byte()
         self.frames = self.update_frames()
         self.table.populate_table(self.frames, self.found_action_frames)
+
+    def get_current_frames(self):
+        return self.frames
 
     def get_throttle_slider_value(self):
         return self.sim_control.throttle_slider.value()
