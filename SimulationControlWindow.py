@@ -6,7 +6,7 @@ from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPixmap, QTrans
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSlider, QLabel, QApplication, QPushButton, \
     QSpacerItem, QSizePolicy
 
-from gadgets.Gauge import GaugeWidget
+from gadgets.GaugeGadget import GaugeWidget
 
 
 class SimulationControl(QWidget):

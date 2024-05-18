@@ -15,7 +15,8 @@ from SimulationControlWindow import SimulationControl
 from linear_map_frame import analyze_linear_relationship_per_frame
 import model_train
 from realtime_predictor import RealTimePredictor
-from gadgets.Gauge import GaugeWidget
+from gadgets.GaugeGadget import GaugeWidget
+from gadgets.LCDGadget import LCDWidget
 
 RANDOM_SEED = 21
 CAPTURE_ITERATION = 500
@@ -98,7 +99,6 @@ class DataGadgets(QWidget):
         self.label = QLabel("Choose a gadget")
         self.main_layout.addWidget(self.label)
 
-
         # Timer to update the label every 50ms
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_display)
@@ -106,8 +106,8 @@ class DataGadgets(QWidget):
     def init_gadget_selector(self):
         self.gadget_selector = QComboBox()
         self.gadget_selector.addItem("None", None)  # Default
-        self.gadget_selector.addItem("GaugeWidget 0-255", ('GaugeWidget', 0, 255))
-        self.gadget_selector.addItem("GaugeWidget 0-180", ('GaugeWidget', 0, 180))
+        self.gadget_selector.addItem("Gauge", ('GaugeWidget', 0, 255))
+        self.gadget_selector.addItem("LCD Screen", ('LCDWidget', None, None))
         self.gadget_selector.currentIndexChanged.connect(self.gadget_selected)
         self.main_layout.addWidget(self.gadget_selector, 0, Qt.AlignHCenter)
 
@@ -123,6 +123,10 @@ class DataGadgets(QWidget):
                 self.current_gadget.setFixedSize(150, 150)
                 self.main_layout.addWidget(self.current_gadget, 2, Qt.AlignHCenter)  # Add at position 2
                 self.init_byte_selector()
+            if gadget_type == "LCDWidget":
+                self.current_gadget = LCDWidget()
+                self.main_layout.addWidget(self.current_gadget, 2, Qt.AlignHCenter)
+                self.init_byte_selector()
 
     def init_byte_selector(self):
         if not hasattr(self, 'byte_selector'):
@@ -132,8 +136,8 @@ class DataGadgets(QWidget):
             layout.addWidget(label)
             layout.addWidget(self.byte_selector)
             self.byte_layout = layout  # Save layout to be able to re-insert it
-        else:
-            self.main_layout.removeLayout(self.byte_layout)  # Remove the old layout first
+        # else:
+        #     self.main_layout.removeLayout(self.byte_layout)  # Remove the old layout first
 
         self.byte_selector.clear()
         self.byte_selector.addItem("None", None)
@@ -141,7 +145,8 @@ class DataGadgets(QWidget):
             self.byte_selector.addItem(str(i), i)  # i as userData
 
         self.byte_selector.currentIndexChanged.connect(lambda
-                                                      index: self.byte_combobox_triggered(self.byte_selector.itemData(self.byte_selector.currentIndex())))
+                                                           index: self.byte_combobox_triggered(self.byte_selector.itemData(
+            self.byte_selector.currentIndex())))
         self.byteComboBoxConnected = True  # Set flag to True as it's now connected
         self.main_layout.addLayout(self.byte_layout, 3)  # Add at the end
         self.setAcceptDrops(True)
