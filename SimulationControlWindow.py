@@ -35,18 +35,6 @@ class SimulationControl(QWidget):
         title_layout = QHBoxLayout()
         gadget_layout = QHBoxLayout()
 
-        # Capturing buttons
-        self.captureIdleButton = QPushButton("Record Idle")
-        self.captureThrottleButton = QPushButton("Record Throttle")
-        self.captureBrakeButton = QPushButton("Record Brake")
-        self.captureSteerRightButton = QPushButton("Record Steer Right")
-        self.captureSteerLeftButton = QPushButton("Record Steer Left")
-        button_layout.addWidget(self.captureIdleButton)
-        button_layout.addWidget(self.captureThrottleButton)
-        button_layout.addWidget(self.captureBrakeButton)
-        button_layout.addWidget(self.captureSteerRightButton)
-        button_layout.addWidget(self.captureSteerLeftButton)
-
         # Throttle title
         self.throttle_label = QLabel("Throttle")
         self.throttle_label.setAlignment(Qt.AlignCenter)

@@ -6,9 +6,10 @@ import time
 import pandas as pd
 
 from PySide6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTableWidget,
-                               QTableWidgetItem, QLabel, QInputDialog, QGridLayout, QComboBox)
+                               QTableWidgetItem, QLabel, QInputDialog, QGridLayout, QComboBox, QSpacerItem, QSizePolicy,
+                               QSlider, QLineEdit)
 from PySide6.QtCore import QTimer, QMimeData, Qt
-from PySide6.QtGui import QColor, QDrag, QDragEnterEvent
+from PySide6.QtGui import QColor, QDrag
 
 from frame_generator import generate_random_frames
 from SimulationControlWindow import SimulationControl
@@ -21,7 +22,7 @@ from gadgets.VerticalBarGadget import VerticalBarWidget
 from gadgets.LineGraphGadget import LineChartWidget
 
 RANDOM_SEED = 21
-CAPTURE_ITERATION = 500
+CAPTURE_ITERATION = 100
 
 
 class DataTable(QTableWidget):
@@ -94,12 +95,12 @@ class DataGadgets(QWidget):
         self.current_gadget = None
         self.byteComboBoxConnected = False  # Flag to track connection status
 
-        # Initial dropdown to select the type of gadget
-        self.init_gadget_selector()
-
         # Label for displaying the selected ID
         self.gadget_label = QLabel("Choose a gadget")
-        self.main_layout.addWidget(self.gadget_label)
+        self.main_layout.addWidget(self.gadget_label, 0, Qt.AlignHCenter)
+
+        # Initial dropdown to select the type of gadget
+        self.init_gadget_selector()
 
         # Timer to update the label every 50ms
         self.timer = QTimer(self)
@@ -114,10 +115,29 @@ class DataGadgets(QWidget):
         self.gadget_selector.currentIndexChanged.connect(self.gadget_selected)
         self.main_layout.addWidget(self.gadget_selector, 0, Qt.AlignHCenter)
 
-        # Top label to provide context or title
-        self.selected_id_label = QLabel("Gadget Control Panel")
-        self.main_layout.addWidget(self.selected_id_label)
+        # Horizontal layout for the "Selected ID" and actual ID
+        self.id_layout = QHBoxLayout()
+
+        # Label for "Selected ID:"
+        self.selected_id_label = QLabel("Selected ID:")
+        self.id_layout.addWidget(self.selected_id_label, alignment=Qt.AlignLeft)
+
+        # Spacer to push apart "Selected ID:" and the actual ID
+        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.id_layout.addItem(spacer)
+
+        # Label for displaying the actual ID
+        self.current_id_value = QLabel(self.current_id)
+        self.id_layout.addWidget(self.current_id_value, alignment=Qt.AlignRight)
+
+        # Add the ID layout to the main layout
+        self.main_layout.addLayout(self.id_layout)
+
         self.selected_id_label.setVisible(False)
+        self.current_id_value.setVisible(False)
+
+        # Set the window's main layout
+        self.setLayout(self.main_layout)
 
     def gadget_selected(self, index):
         item_data = self.gadget_selector.itemData(index)
@@ -143,6 +163,9 @@ class DataGadgets(QWidget):
                                               alignment=Qt.AlignCenter)  # Insert the gadget at position 1
                 self.init_byte_selector()
 
+                self.main_layout.removeWidget(self.gadget_selector)
+                self.main_layout.insertWidget(2, self.gadget_selector, 0, Qt.AlignLeft)
+
         else:  # In case "None" is selected
             self.gadget_label.setVisible(True)
 
@@ -164,6 +187,9 @@ class DataGadgets(QWidget):
             self.main_layout.addLayout(self.byte_layout)
         self.setAcceptDrops(True)
 
+        self.selected_id_label.setVisible(True)
+        self.current_id_value.setVisible(True)
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
@@ -172,12 +198,11 @@ class DataGadgets(QWidget):
         new_id = event.mimeData().text()
         if new_id:
             if len(new_id) == 2:
-                self.gadget_label.setText("Please insert an ID only!")
+                self.current_id_value.setText("Insert an ID only!")
             else:
                 self.current_id = new_id
                 self.update_display()
-                self.selected_id_label.setText(f"Selected ID: {self.current_id}")
-                self.selected_id_label.setVisible(True)
+                self.current_id_value.setText(self.current_id)
 
     def byte_combobox_triggered(self, byte_index):
         self.current_byte_idx = byte_index
@@ -199,12 +224,107 @@ class DataGadgets(QWidget):
 
 
 class DataControls(QWidget):
-    def __init__(self):
+    def __init__(self, set_current_frames):
         super().__init__()
-        layout = QVBoxLayout()
-        button = QPushButton("Test")
-        layout.addWidget(button)
-        self.setLayout(layout)
+        self.setFixedWidth(230)
+        self.main_layout = QVBoxLayout(self)
+        self.setAcceptDrops(True)
+
+        self.current_id = None
+        self.current_byte_idx = None
+        self.set_current_frames = set_current_frames
+
+        # Label to instruct user or show selected ID
+        self.id_label = QLabel("Drag and drop an ID here")
+        self.main_layout.addWidget(self.id_label, 0, Qt.AlignHCenter)
+
+        # Combo box to select control type
+        self.control_selector = QComboBox()
+        self.control_selector.addItem("Select control", None)
+        self.control_selector.addItem("Slider", "slider")
+        self.control_selector.addItem("Input Field", "input")
+        self.control_selector.currentIndexChanged.connect(self.control_selected)
+        self.control_selector.setVisible(False)
+        self.main_layout.addWidget(self.control_selector, 1, Qt.AlignHCenter)
+
+        # Byte Selector
+        self.byte_selector = QComboBox()
+        self.byte_selector.addItem("Select Byte", None)
+        for i in range(8):
+            self.byte_selector.addItem(f"Byte {i}", i)
+        self.byte_selector.currentIndexChanged.connect(self.byte_selected)
+        self.byte_selector.setVisible(False)
+        self.main_layout.addWidget(self.byte_selector)
+
+        # Placeholder for control widget
+        self.control_widget = None
+        self.input_submit_button = None  # Button for submitting input field value
+
+    def control_selected(self, index):
+        # Remove the old widget and button if any
+        if self.control_widget:
+            self.main_layout.removeWidget(self.control_widget)
+            self.control_widget.deleteLater()
+            self.control_widget = None
+        if self.input_submit_button:
+            self.main_layout.removeWidget(self.input_submit_button)
+            self.input_submit_button.deleteLater()
+            self.input_submit_button = None
+
+        control_type = self.control_selector.itemData(index)
+        if control_type == "slider":
+            self.control_widget = QSlider(Qt.Horizontal)
+            self.control_widget.setMinimum(0)
+            self.control_widget.setMaximum(255)
+            self.control_widget.valueChanged.connect(self.slider_value_changed)
+            self.main_layout.addWidget(self.control_widget, 2, Qt.AlignHCenter)
+        elif control_type == "input":
+            self.control_widget = QLineEdit()
+            self.control_widget.setPlaceholderText("Enter value")
+            self.input_submit_button = QPushButton("Submit")
+            self.input_submit_button.clicked.connect(self.input_value_submitted)
+            layout = QHBoxLayout()
+            layout.addWidget(self.control_widget)
+            layout.addWidget(self.input_submit_button)
+            self.main_layout.addLayout(layout, 2)
+
+    def byte_selected(self, index):
+        self.current_byte_idx = self.byte_selector.itemData(index)
+        if self.current_byte_idx is not None:
+            print(f"Byte {self.current_byte_idx} selected")
+
+    def slider_value_changed(self, value):
+        if self.current_id and self.current_byte_idx is not None:
+            hex_value = f"{value:02x}"
+            self.set_current_frames(self.current_id, self.current_byte_idx, hex_value)
+
+    def input_value_submitted(self):
+        if self.control_widget and self.current_id and self.current_byte_idx is not None:
+            value = self.control_widget.text()
+            try:
+                int_value = int(value)
+                if 0 <= int_value <= 255:
+                    hex_value = f"{int_value:02x}"
+                    self.set_current_frames(self.current_id, self.current_byte_idx, hex_value)
+                else:
+                    self.control_widget.setText("Invalid value")
+            except ValueError:
+                self.control_widget.setText("Invalid input")
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasText():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        id_text = event.mimeData().text()
+        if id_text:
+            if len(id_text) == 2:
+                self.id_label.setText("Please insert a full ID!")
+            else:
+                self.current_id = id_text
+                self.id_label.setText(f"Selected ID: {self.current_id}")
+                self.control_selector.setVisible(True)
+                self.byte_selector.setVisible(True)
 
 
 class DataPlotter(QWidget):
@@ -278,11 +398,11 @@ class DataPlotter(QWidget):
                 return frame['data']
 
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("CAN Analyzer")
+        self.resize(1920, 1000)
         self.file_paths = {
             'idle': 'data/idle_data.csv',
             'throttle': 'data/throttle_data.csv',
@@ -291,6 +411,7 @@ class MainWindow(QMainWindow):
             'steerRight': 'data/steerRight_data.csv'
         }
         self.found_action_frames = []
+        self.run_predict = False
         self.setup_ui()
 
     def setup_ui(self):
@@ -302,26 +423,35 @@ class MainWindow(QMainWindow):
 
         self.table_layout = QVBoxLayout()
 
+        # Capturing buttons
         self.button_layout = QHBoxLayout()
-        self.findFramesButton = QPushButton("Find frames")
-        self.trainButton = QPushButton("Train model")
-        self.predictButton = QPushButton("Load trained model")
-        self.button_layout.addWidget(self.findFramesButton)
-        self.button_layout.addWidget(self.trainButton)
-        self.button_layout.addWidget(self.predictButton)
+        self.setup_buttons()
 
+        # Table
         self.table = DataTable()
-        self.controls = DataControls()
+
+        # Controllers layout
+        controllers_layout = QGridLayout()
+        self.controllers = []
+
+        for row in range(3):
+            row_list = []
+            for col in range(2):
+                controller = DataControls(self.set_current_frames)
+                controllers_layout.addWidget(controller, row, col)
+                row_list.append(controller)
+            self.controllers.append(row_list)
 
         self.table_layout.addLayout(self.button_layout)
         self.table_layout.addWidget(self.table)
-        self.table_layout.addWidget(self.controls)
+        self.table_layout.addLayout(controllers_layout)
 
-        content_layout.addLayout(self.button_layout)
+        # content_layout.addLayout(self.button_layout)
         content_layout.addLayout(self.table_layout)
 
         right_layout = QVBoxLayout()
 
+        # Gadgets layout
         top_right_layout = QGridLayout()
         self.gadgets = []
 
@@ -331,15 +461,18 @@ class MainWindow(QMainWindow):
                 gadget = DataGadgets(self.get_current_frames)
                 top_right_layout.addWidget(gadget, row, col)
                 row_list.append(gadget)
-        self.gadgets.append(row_list)
+            self.gadgets.append(row_list)
 
+        # Plotters layout
         bottom_right_layout = QHBoxLayout()
+        bottom_right_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.plotters = []
 
         for plot in range(3):
             plotter = DataPlotter(self.get_current_frames)
             bottom_right_layout.addWidget(plotter)
-            self.plotters.append(row_list)
+            bottom_right_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+            self.plotters.append(plotter)
 
         right_layout.addLayout(top_right_layout)
         right_layout.addLayout(bottom_right_layout)
@@ -365,23 +498,59 @@ class MainWindow(QMainWindow):
             else:
                 return 0
 
-    def setup_control_ui(self):
-        self.sim_control = SimulationControl()
-        self.sim_control.captureIdleButton.clicked.connect(lambda: self.enable_capture("idle"))
-        self.sim_control.captureThrottleButton.clicked.connect(lambda: self.enable_capture("throttle"))
-        self.sim_control.captureBrakeButton.clicked.connect(lambda: self.enable_capture("brake"))
-        self.sim_control.captureSteerLeftButton.clicked.connect(lambda: self.enable_capture("steerLeft"))
-        self.sim_control.captureSteerRightButton.clicked.connect(lambda: self.enable_capture("steerRight"))
+    def setup_buttons(self):
+        # Control buttons
+        self.recordButton = QPushButton("Start recording")
+        self.recordButton.clicked.connect(self.enable_recording_buttons)
+        self.trainButton = QPushButton("Train model")
+        self.findFramesButton = QPushButton("Find frames")
+        self.starPredictButton = QPushButton("Start predicting")
+        self.stopPredictButton = QPushButton("Stop predicting")
+        self.button_layout.addWidget(self.recordButton)
+        self.button_layout.addWidget(self.trainButton)
+        self.button_layout.addWidget(self.findFramesButton)
+        self.button_layout.addWidget(self.starPredictButton)
+        self.button_layout.addWidget(self.stopPredictButton)
+        self.trainButton.hide()
+        self.findFramesButton.hide()
+        self.starPredictButton.hide()
+        self.stopPredictButton.hide()
+
+        # Capture buttons
+        self.captureIdleButton = QPushButton("Record Idle")
+        self.captureThrottleButton = QPushButton("Record Throttle")
+        self.captureBrakeButton = QPushButton("Record Brake")
+        self.captureSteerRightButton = QPushButton("Record Steer Right")
+        self.captureSteerLeftButton = QPushButton("Record Steer Left")
+        self.button_layout.addWidget(self.captureIdleButton)
+        self.button_layout.addWidget(self.captureThrottleButton)
+        self.button_layout.addWidget(self.captureBrakeButton)
+        self.button_layout.addWidget(self.captureSteerRightButton)
+        self.button_layout.addWidget(self.captureSteerLeftButton)
+
+        self.captureIdleButton.clicked.connect(lambda: self.enable_capture("idle"))
+        self.captureThrottleButton.clicked.connect(lambda: self.enable_capture("throttle"))
+        self.captureBrakeButton.clicked.connect(lambda: self.enable_capture("brake"))
+        self.captureSteerLeftButton.clicked.connect(lambda: self.enable_capture("steerLeft"))
+        self.captureSteerRightButton.clicked.connect(lambda: self.enable_capture("steerRight"))
 
         self.capture_button_enable = {
-            'idle': self.sim_control.captureIdleButton.setEnabled,
-            'throttle': self.sim_control.captureThrottleButton.setEnabled,
-            'brake': self.sim_control.captureBrakeButton.setEnabled,
-            'steerLeft': self.sim_control.captureSteerLeftButton.setEnabled,
-            'steerRight': self.sim_control.captureSteerRightButton.setEnabled
+            'idle': self.captureIdleButton.setEnabled,
+            'throttle': self.captureThrottleButton.setEnabled,
+            'brake': self.captureBrakeButton.setEnabled,
+            'steerLeft': self.captureSteerLeftButton.setEnabled,
+            'steerRight': self.captureSteerRightButton.setEnabled
         }
-        self.sim_control.state_label.hide()
 
+        self.captureIdleButton.hide()
+        self.captureThrottleButton.hide()
+        self.captureBrakeButton.hide()
+        self.captureSteerRightButton.hide()
+        self.captureSteerLeftButton.hide()
+
+    def setup_control_ui(self):
+        self.sim_control = SimulationControl()
+        self.sim_control.state_label.hide()
         self.sim_control.show()
 
     def setup_simulation(self):
@@ -398,10 +567,6 @@ class MainWindow(QMainWindow):
         self.assign_random_byte_for_action(self.steeringFrame, 2)
 
         self.initial_frames = sorted(self.initial_frames, key=lambda x: int(x['id'], 16))
-
-        self.findFramesButton.clicked.connect(self.find_action_frames)  # REMOVE IN FINAL VERSION
-        self.trainButton.clicked.connect(self.train_model)  # REMOVE IN FINAL VERSION
-        self.predictButton.clicked.connect(self.start_predict)  # REMOVE IN FINAL VERSION
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.simulate)
@@ -437,24 +602,53 @@ class MainWindow(QMainWindow):
     def get_steering_slider_value(self):
         return self.sim_control.steering_slider.value()
 
-    def update_throttle_byte(self):
-        byte = format(self.get_throttle_slider_value(), '02X')
-        frame = self.throttleFrame['data']
-        idx = self.throttleFrame['byte idx'][0]
-        new_data = frame[:idx] + byte + frame[idx + 2:]
-        self.throttleFrame['data'] = new_data
+    def set_current_frames(self, id, idx, val):
+        if id == self.throttleFrame['id']:
+            self.update_throttle_byte(True, idx, val)
+        elif id == self.brakeFrame['id']:
+            self.update_brake_byte(True, idx, val)
+        elif id == self.steeringFrame['id']:
+            self.update_steering_byte(True, idx, val)
 
-    def update_brake_byte(self):
-        byte = format(self.get_brake_slider_value(), '02X')
-        frame = self.brakeFrame['data']
-        idx = self.brakeFrame['byte idx'][0]
-        new_data = frame[:idx] + byte + frame[idx + 2:]
-        self.brakeFrame['data'] = new_data
+        for index, frame in enumerate(self.frames):
+            if id == frame['id']:
+                idx = idx * 2
+                new_data = frame['data'][:idx] + format(val, '02') + frame['data'][idx + 2:]
+                self.initial_frames[index]['data'] = new_data
 
-    def update_steering_byte(self):
+    def update_throttle_byte(self, force=False, idx=None, val=None):
+        if not force:
+            byte = format(self.get_throttle_slider_value(), '02X')
+            frame = self.throttleFrame['data']
+            idx = self.throttleFrame['byte idx'][0]
+            new_data = frame[:idx] + byte + frame[idx + 2:]
+            self.throttleFrame['data'] = new_data
+        else:
+            byte = val
+            frame = self.throttleFrame['data']
+            new_data = frame[:idx] + byte + frame[idx + 2:]
+            self.throttleFrame['data'] = new_data
+
+    def update_brake_byte(self, force=False, idx=None, val=None):
+        if not force:
+            byte = format(self.get_brake_slider_value(), '02X')
+            frame = self.brakeFrame['data']
+            idx = self.brakeFrame['byte idx'][0]
+            new_data = frame[:idx] + byte + frame[idx + 2:]
+            self.brakeFrame['data'] = new_data
+        else:
+            byte = val
+            frame = self.brakeFrame['data']
+            new_data = frame[:idx] + byte + frame[idx + 2:]
+            self.brakeFrame['data'] = new_data
+
+    def update_steering_byte(self, force=False, idx=None, val=None):
         frame = self.steeringFrame['data']
         idx = self.steeringFrame['byte idx']
-        byte = self.get_steering_slider_value()
+        if not force:
+            byte = self.get_steering_slider_value()
+        else:
+            byte = int(val,16)
         if byte == 127:
             new_data = frame[:idx[0]] + '00' + frame[idx[0] + 2:]
             new_data = new_data[:idx[1]] + '00' + new_data[idx[1] + 2:]
@@ -479,6 +673,14 @@ class MainWindow(QMainWindow):
             new_frames.append({'id': frame['id'], 'data': data})
         return new_frames
 
+    def enable_recording_buttons(self):
+        self.recordButton.hide()
+        self.captureIdleButton.show()
+        self.captureThrottleButton.show()
+        self.captureBrakeButton.show()
+        self.captureSteerRightButton.show()
+        self.captureSteerLeftButton.show()
+
     def enable_capture(self, button_name):
         print(f"Capture triggered by: {button_name}")
 
@@ -488,21 +690,20 @@ class MainWindow(QMainWindow):
 
         # Hide all buttons if all were clicked
         if all(not button.isEnabled() for button in
-               [self.sim_control.captureIdleButton, self.sim_control.captureThrottleButton,
-                self.sim_control.captureBrakeButton,
-                self.sim_control.captureSteerLeftButton,
-                self.sim_control.captureSteerRightButton]):
-            self.sim_control.captureIdleButton.hide()
-            self.sim_control.captureThrottleButton.hide()
-            self.sim_control.captureBrakeButton.hide()
-            self.sim_control.captureSteerRightButton.hide()
-            self.sim_control.captureSteerLeftButton.hide()
+               [self.captureIdleButton, self.captureThrottleButton,
+                self.captureBrakeButton,
+                self.captureSteerLeftButton,
+                self.captureSteerRightButton]):
+            self.captureIdleButton.hide()
+            self.captureThrottleButton.hide()
+            self.captureBrakeButton.hide()
+            self.captureSteerRightButton.hide()
+            self.captureSteerLeftButton.hide()
 
-            # self.findFramesButton.clicked.connect(self.find_action_frames())
-            # self.trainButton.clicked.connect(self.train_model)
-            # self.predictButton.clicked.connect(self.start_predict)
-            # self.findFramesButton.show()
-            # self.trainButton.show()
+            self.findFramesButton.clicked.connect(self.find_action_frames)
+            self.trainButton.clicked.connect(self.train_model)
+            self.findFramesButton.show()
+            self.trainButton.show()
 
         capture_thread = threading.Thread(target=self.capture,
                                           args=(CAPTURE_ITERATION, button_name, self.file_paths[button_name], True))
@@ -566,17 +767,27 @@ class MainWindow(QMainWindow):
 
         model, scaler, label_encoder = model_train.train(self.frame_count)
         self.predictor = RealTimePredictor(model, scaler, label_encoder)
-        self.predictButton.show()
+
+        self.starPredictButton.show()
+        self.stopPredictButton.show()
+        self.starPredictButton.clicked.connect(self.start_predict)
+        self.stopPredictButton.clicked.connect(self.stop_predict)
         self.trainButton.hide()
         self.sim_control.state_label.show()
 
     def start_predict(self):
         # Capture for period of duration
+        self.run_predict = True
         predict_thread = threading.Thread(target=self.predict)
         predict_thread.start()
 
+    def stop_predict(self):
+        self.run_predict = False
+        self.sim_control.state_label.hide()
+
     def predict(self):
-        while True:
+        self.sim_control.state_label.show()
+        while self.run_predict:
             frames = self.capture(1)
             self.sim_control.state_label.setText(self.predictor.predict(frames,
                                                                         self.frame_count))
