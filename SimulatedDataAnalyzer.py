@@ -21,7 +21,7 @@ from gadgets.LCDGadget import LCDWidget
 from gadgets.VerticalBarGadget import VerticalBarWidget
 from gadgets.LineGraphGadget import LineChartWidget
 
-RANDOM_SEED = 21
+RANDOM_SEED = 25
 CAPTURE_ITERATION = 100
 
 
@@ -588,6 +588,7 @@ class MainWindow(QMainWindow):
         self.update_brake_byte()
         self.update_steering_byte()
         self.frames = self.update_frames()
+        print(self.frames)
         self.table.populate_table(self.frames, self.found_action_frames)
 
     def get_current_frames(self):

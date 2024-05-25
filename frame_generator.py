@@ -24,7 +24,6 @@ def generate_random_frames(frame_count, num_of_random_hex_frames=5, split_ratio=
             # Append the formatted hex string to the list
             hex_values.append(random_hex)
         frames.append({'id': random_id, 'data': hex_values})
-    # random.shuffle(frames)
     return frames
 
 
