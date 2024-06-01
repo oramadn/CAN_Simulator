@@ -22,6 +22,14 @@ from serial_read import serial_read
 
 RANDOM_SEED = 25
 CAPTURE_ITERATION = 100
+SERIAL_FLAG = False
+SERIAL_VALUE = None
+
+snifferSerial = serial.Serial('COM4', 500000, timeout=1)
+snifferSerial.reset_input_buffer()
+time.sleep(2)
+
+
 
 
 class DataTable(QTableWidget):
@@ -294,22 +302,40 @@ class DataControls(QWidget):
 
     def slider_value_changed(self, value):
         if self.current_id and self.current_byte_idx is not None:
-            hex_value = f"{value:02x}"
-            self.set_current_frames(self.current_id, self.current_byte_idx, hex_value)
+            int_value = int(value)
+            try:
+                # Format the value to be a 3-character string with leading zeros
+                value_str = f"{int_value:03d}"
+                # Combine ID and value into a single message
+                message = self.current_id + value_str
+                # Send the message over the serial connection
+                snifferSerial.write((message + "\n").encode())
+                snifferSerial.flush()
+                print(f"Sent message: {message}")
+            except Exception as e:
+                print(f"Error sending data: {e}")
 
     def input_value_submitted(self):
         if self.control_widget and self.current_id and self.current_byte_idx is not None:
-            value = self.control_widget.text()
+            value = self.control_widget.text()  # Assuming this gets text from a widget
             try:
                 int_value = int(value)
                 if 0 <= int_value <= 255:
-                    hex_value = f"{int_value:02x}"
-                    self.set_current_frames(self.current_id, self.current_byte_idx, hex_value)
+                    try:
+                        # Format the value to be a 3-character string with leading zeros
+                        value_str = f"{int_value:03d}"
+                        # Combine ID and value into a single message
+                        message = self.current_id + value_str
+                        # Send the message over the serial connection
+                        snifferSerial.write((message + "\n").encode())
+                        snifferSerial.flush()
+                        print(f"Sent message: {message}")
+                    except Exception as e:
+                        print(f"Error sending data: {e}")
                 else:
                     self.control_widget.setText("Invalid value")
             except ValueError:
                 self.control_widget.setText("Invalid input")
-
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
@@ -534,13 +560,6 @@ class MainWindow(QMainWindow):
         self.captureSteerLeftButton.hide()
 
     def setup_simulation(self):
-        # Configure the serial port
-        self.ser = serial.Serial('COM4', 1000000, timeout=1)
-        self.ser.reset_input_buffer()
-
-        # Wait for the serial connection to initialize
-        time.sleep(2)
-
         serial_thread = threading.Thread(target=self.serial_read)
         serial_thread.start()
 
@@ -550,7 +569,8 @@ class MainWindow(QMainWindow):
 
     def serial_read(self):
         while True:
-            received_data = serial_read(self.ser)
+            # Read Serial
+            received_data = serial_read(snifferSerial)
             if received_data is not None and isinstance(received_data, dict):
                 self.update_frames(received_data)
 
@@ -648,7 +668,7 @@ class MainWindow(QMainWindow):
             if file_path == "data/idle_data.csv":
                 continue
             best_frame_id, best_byte, best_r_squared = analyze_linear_relationship_per_frame(file_path,
-                                                                                             self.frame_count)
+                                                                                             len(self.frames))
             self.found_action_frames.append({'label': label, 'id': best_frame_id, 'byte_idx': best_byte,
                                              'r_squared': best_r_squared})
             print(
@@ -668,7 +688,7 @@ class MainWindow(QMainWindow):
         combined_df.to_csv(output_file, index=False)
         print(f"Combined CSV created at: {output_file}")
 
-        model, scaler, label_encoder = model_train.train(self.frame_count)
+        model, scaler, label_encoder = model_train.train(len(self.frames))
         self.predictor = RealTimePredictor(model, scaler, label_encoder)
 
         self.starPredictButton.show()
