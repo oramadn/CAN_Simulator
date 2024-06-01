@@ -588,7 +588,6 @@ class MainWindow(QMainWindow):
         self.update_brake_byte()
         self.update_steering_byte()
         self.frames = self.update_frames()
-        print(self.frames)
         self.table.populate_table(self.frames, self.found_action_frames)
 
     def get_current_frames(self):
